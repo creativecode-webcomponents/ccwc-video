@@ -1,0 +1,14 @@
+{
+  "name": "ccwc-videoplayer",
+  "version": "0.1.0",
+  "dependencies": {
+    "webcomponents.js": "^0.7.2"
+  },
+  "devDependencies": {
+    "babel": "^5.8.21",
+    "gulp": "^3.9.0",
+    "gulp-babel": "^5.2.0",
+    "gulp-concat": "^2.6.0",
+    "gulp-sourcemaps": "^1.5.2"
+  }
+}

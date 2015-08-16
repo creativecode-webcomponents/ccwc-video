@@ -1,0 +1,8 @@
+canvas {
+    position: absolute;
+}
+
+#vid {
+    position: absolute;
+    background-color: #000000;
+}
