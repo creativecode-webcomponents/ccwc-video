@@ -89,8 +89,8 @@ class CCWCVideoPlayer extends HTMLElement {
      */
     onResize() {
         // set size properties based on component height
-        this.width = this.root.offsetWidth;
-        this.height = this.root.offsetHeight;
+        this.width = this.offsetWidth;
+        this.height = this.offsetHeight;
 
         // set video to component size
         this.videoElement.setAttribute("width", this.width);
@@ -195,10 +195,13 @@ class CCWCVideoPlayer extends HTMLElement {
         this.root = this.createShadowRoot();
         this.root.appendChild(clone);
 
+        window.addEventListener('HTMLImportsLoaded', e => {
+            this.onResize();
+        });
+
         this.videoElement = this.root.querySelector('#vid');
         this.canvasElement = this.root.querySelector('#canvas');
 
-        this.onResize();
         this.videoElement.onloadedmetadata = e => {
             this.onResize();
         };

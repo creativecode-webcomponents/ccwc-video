@@ -1,8 +1,12 @@
-canvas {
+ccwc-videoplayer {
+    display: inline-block;
+}
+
+ccwc-videoplayer /deep/ canvas {
     position: absolute;
 }
 
-#vid {
+ccwc-videoplayer /deep/ #vid {
     position: absolute;
     background-color: #000000;
 }
