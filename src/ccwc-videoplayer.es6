@@ -82,6 +82,10 @@ class CCWCVideoPlayer extends HTMLElement {
         this.scaleY = 0;
     }
 
+    set onFrameUpdate(callback) {
+        this.onFrameUpdate = callback;
+    };
+
     /**
      * update canvas dimensions when resized
      *
@@ -95,6 +99,10 @@ class CCWCVideoPlayer extends HTMLElement {
         // set video to component size
         this.videoElement.setAttribute("width", this.width);
         this.videoElement.setAttribute("height", this.height);
+
+        // set canvas to component size
+        this.canvasElement.setAttribute("width", this.width);
+        this.canvasElement.setAttribute("height", this.height);
 
         // calculate scale values for real video vs component size
         this.scaleX = this.width / this.videoElement.videoWidth;
@@ -151,7 +159,7 @@ class CCWCVideoPlayer extends HTMLElement {
      */
     getCurrentFrameData(mode, noredraw) {
         if (!mode) {
-            mode = "binary";
+            mode = "image";
         }
         if (!noredraw) {
             this.canvasElement.setAttribute('width', this.width);
@@ -182,8 +190,28 @@ class CCWCVideoPlayer extends HTMLElement {
         }
         var data = this.getCurrentFrameData().toString('binary');
         fs.writeFileSync(pth, data, 'binary');
-    }
+    };
 
+    /**
+     * parse attributes on element
+     */
+    parseAttributes() {
+        if (this.hasAttribute('src')) {
+            this.source = this.getAttribute('src');
+            this.setSource(this.source);
+        }
+
+        if (this.hasAttribute('useCanvasForDisplay')) {
+            this.useCanvasForDisplay = true;
+        } else {
+            this.useCanvasForDisplay = false;
+        }
+
+        if (this.hasAttribute('frame-update')) {
+            this.frameUpdateHandler = this.getAttribute('frame-update');
+            console.log(this.frameUpdateHandler)
+        }
+    };
 
     // Fires when an instance of the element is created.
     createdCallback() {};
@@ -202,6 +230,8 @@ class CCWCVideoPlayer extends HTMLElement {
         this.videoElement = this.root.querySelector('#vid');
         this.canvasElement = this.root.querySelector('#canvas');
 
+        this.parseAttributes();
+
         this.videoElement.onloadedmetadata = e => {
             this.onResize();
         };
@@ -210,18 +240,13 @@ class CCWCVideoPlayer extends HTMLElement {
             this.videoElement.style.display = 'none';
             this.tick = setInterval(() => {
                 this.canvasctx.drawImage(this.videoElement, 0, 0);
-                var event = new Event('camera-frame-update', { framedata: this.getCurrentFrameData(null, true) });
+                var event = new CustomEvent('frameupdate', { detail: { framedata: this.getCurrentFrameData(null, true) }});
                 this.root.dispatchEvent(event);
             }, this.canvasRefreshInterval);
         } else {
             this.canvasElement.style.display = 'none';
         }
         this.canvasctx = this.canvasElement.getContext("2d");
-
-        if (this.hasAttribute('src')) {
-            this.source = this.getAttribute('src');
-            this.setSource(this.source);
-        }
     };
 
     // Fires when an instance was removed from the document.

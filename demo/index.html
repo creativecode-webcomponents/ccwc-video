@@ -15,6 +15,15 @@
     </head>
 
     <body>
-        <ccwc-videoplayer src="http://sample-videos.com/video/mp4/240/big_buck_bunny_240p_50mb.mp4"></ccwc-videoplayer>
+        <ccwc-videoplayer
+                src="SampleVideo_360x240_1mb.mp4"
+                useCanvasForDisplay >
+        </ccwc-videoplayer>
     </body>
+
+    <script>
+        document.querySelector('ccwc-videoplayer').addEventListener('frameupdate', function(event) {
+           // console.log(event.detail.framedata)
+        });
+    </script>
 </html>

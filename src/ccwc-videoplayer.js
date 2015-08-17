@@ -96,14 +96,14 @@ var CCWCVideoPlayer = (function (_HTMLElement) {
         this.scaleY = 0;
     }
 
-    /**
-     * update canvas dimensions when resized
-     *
-     * @method: onResize
-     */
-
     _createClass(CCWCVideoPlayer, [{
         key: "onResize",
+
+        /**
+         * update canvas dimensions when resized
+         *
+         * @method: onResize
+         */
         value: function onResize() {
             // set size properties based on component height
             this.width = this.offsetWidth;
@@ -112,6 +112,10 @@ var CCWCVideoPlayer = (function (_HTMLElement) {
             // set video to component size
             this.videoElement.setAttribute("width", this.width);
             this.videoElement.setAttribute("height", this.height);
+
+            // set canvas to component size
+            this.canvasElement.setAttribute("width", this.width);
+            this.canvasElement.setAttribute("height", this.height);
 
             // calculate scale values for real video vs component size
             this.scaleX = this.width / this.videoElement.videoWidth;
@@ -173,7 +177,7 @@ var CCWCVideoPlayer = (function (_HTMLElement) {
          */
         value: function getCurrentFrameData(mode, noredraw) {
             if (!mode) {
-                mode = "binary";
+                mode = "image";
             }
             if (!noredraw) {
                 this.canvasElement.setAttribute('width', this.width);
@@ -207,10 +211,33 @@ var CCWCVideoPlayer = (function (_HTMLElement) {
             var data = this.getCurrentFrameData().toString('binary');
             fs.writeFileSync(pth, data, 'binary');
         }
+    }, {
+        key: "parseAttributes",
 
-        // Fires when an instance of the element is created.
+        /**
+         * parse attributes on element
+         */
+        value: function parseAttributes() {
+            if (this.hasAttribute('src')) {
+                this.source = this.getAttribute('src');
+                this.setSource(this.source);
+            }
+
+            if (this.hasAttribute('useCanvasForDisplay')) {
+                this.useCanvasForDisplay = true;
+            } else {
+                this.useCanvasForDisplay = false;
+            }
+
+            if (this.hasAttribute('frame-update')) {
+                this.frameUpdateHandler = this.getAttribute('frame-update');
+                console.log(this.frameUpdateHandler);
+            }
+        }
     }, {
         key: "createdCallback",
+
+        // Fires when an instance of the element is created.
         value: function createdCallback() {}
     }, {
         key: "attachedCallback",
@@ -231,6 +258,8 @@ var CCWCVideoPlayer = (function (_HTMLElement) {
             this.videoElement = this.root.querySelector('#vid');
             this.canvasElement = this.root.querySelector('#canvas');
 
+            this.parseAttributes();
+
             this.videoElement.onloadedmetadata = function (e) {
                 _this.onResize();
             };
@@ -239,18 +268,13 @@ var CCWCVideoPlayer = (function (_HTMLElement) {
                 this.videoElement.style.display = 'none';
                 this.tick = setInterval(function () {
                     _this.canvasctx.drawImage(_this.videoElement, 0, 0);
-                    var event = new Event('camera-frame-update', { framedata: _this.getCurrentFrameData(null, true) });
+                    var event = new CustomEvent('frameupdate', { detail: { framedata: _this.getCurrentFrameData(null, true) } });
                     _this.root.dispatchEvent(event);
                 }, this.canvasRefreshInterval);
             } else {
                 this.canvasElement.style.display = 'none';
             }
             this.canvasctx = this.canvasElement.getContext("2d");
-
-            if (this.hasAttribute('src')) {
-                this.source = this.getAttribute('src');
-                this.setSource(this.source);
-            }
         }
     }, {
         key: "detachedCallback",
@@ -263,6 +287,11 @@ var CCWCVideoPlayer = (function (_HTMLElement) {
         // Fires when an attribute was added, removed, or updated.
         value: function attributeChangedCallback(attr, oldVal, newVal) {
             console.log(attr, oldVal);
+        }
+    }, {
+        key: "onFrameUpdate",
+        set: function set(callback) {
+            this.onFrameUpdate = callback;
         }
     }]);
 
