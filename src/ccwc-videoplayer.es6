@@ -1,13 +1,19 @@
 class CCWCVideoPlayer extends HTMLElement {
-    constructor() {
-        super();
-
+    setProperties() {
         /**
          * video source file or stream
          * @attribute source
          * @type string
          */
         this.source = "";
+
+        /**
+         * what type of data comes back with frame data event
+         * @attribute frameDataMode
+         * @type String
+         * @default imagedataurl
+         */
+        this.frameDataMode = 'imagedataurl';
 
         /**
          * determines whether to use the canvas element for display instead of the video element
@@ -82,10 +88,6 @@ class CCWCVideoPlayer extends HTMLElement {
         this.scaleY = 0;
     }
 
-    set onFrameUpdate(callback) {
-        this.onFrameUpdate = callback;
-    };
-
     /**
      * update canvas dimensions when resized
      *
@@ -158,20 +160,32 @@ class CCWCVideoPlayer extends HTMLElement {
      * @return {object} image data
      */
     getCurrentFrameData(mode, noredraw) {
+        var data;
         if (!mode) {
-            mode = "image";
+            mode = this.frameDataMode;
         }
         if (!noredraw) {
             this.canvasElement.setAttribute('width', this.width);
             this.canvasElement.setAttribute('height', this.height);
             this.canvasctx.drawImage(this.videoElement, 0, 0);
         }
-        var data = this.canvasElement.toDataURL("image/png");
-        if (mode == "binary") {
-            var base64Data = data.replace('data:image/png;base64', "");
-            var binaryData = new Buffer(base64Data, 'base64');
-            data = binaryData;
+
+        switch (mode) {
+            case 'binary':
+                var base64Data = data.replace('data:image/png;base64', "");
+                var binaryData = new Buffer(base64Data, 'base64');
+                data = binaryData;
+                break;
+
+            case 'imagedataurl':
+                data = this.canvasElement.toDataURL("image/png");
+                break;
+
+            case 'imagedata':
+                data = this.canvasctx.getImageData(0, 0, this.width, this.height);
+                break;
         }
+
         // todo: non-binary mode for assigning data to image elements for example
         return data;
     };
@@ -207,14 +221,15 @@ class CCWCVideoPlayer extends HTMLElement {
             this.useCanvasForDisplay = false;
         }
 
-        if (this.hasAttribute('frame-update')) {
-            this.frameUpdateHandler = this.getAttribute('frame-update');
-            console.log(this.frameUpdateHandler)
+        if (this.hasAttribute('frameDataMode')) {
+            this.frameDataMode = this.getAttribute('frameDataMode');
         }
     };
 
     // Fires when an instance of the element is created.
-    createdCallback() {};
+    createdCallback() {
+        this.setProperties();
+    };
 
     // Fires when an instance was inserted into the document.
     attachedCallback() {
@@ -229,18 +244,23 @@ class CCWCVideoPlayer extends HTMLElement {
 
         this.videoElement = this.root.querySelector('#vid');
         this.canvasElement = this.root.querySelector('#canvas');
-
-        this.parseAttributes();
-
         this.videoElement.onloadedmetadata = e => {
             this.onResize();
         };
 
+        this.parseAttributes();
+
         if (this.useCanvasForDisplay) {
             this.videoElement.style.display = 'none';
             this.tick = setInterval(() => {
+                if (this.width === 0 || this.height === 0) { return; }
                 this.canvasctx.drawImage(this.videoElement, 0, 0);
-                var event = new CustomEvent('frameupdate', { detail: { framedata: this.getCurrentFrameData(null, true) }});
+                var event = new CustomEvent('frameupdate', { detail: {
+                    framedata: this.getCurrentFrameData(null, true),
+                    canvascontext: this.canvasctx,
+                    width: this.width,
+                    height: this.height }});
+
                 this.root.dispatchEvent(event);
             }, this.canvasRefreshInterval);
         } else {

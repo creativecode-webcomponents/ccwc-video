@@ -14,96 +14,107 @@ var CCWCVideoPlayer = (function (_HTMLElement) {
     function CCWCVideoPlayer() {
         _classCallCheck(this, CCWCVideoPlayer);
 
-        _get(Object.getPrototypeOf(CCWCVideoPlayer.prototype), "constructor", this).call(this);
-
-        /**
-         * video source file or stream
-         * @attribute source
-         * @type string
-         */
-        this.source = "";
-
-        /**
-         * determines whether to use the canvas element for display instead of the video element
-         * @attribute useCanvasForDisplay
-         * @type boolean
-         * @default false
-         */
-        this.useCanvasForDisplay = false;
-
-        /**
-         * refresh interval when using the canvas for display
-         * @attribute canvasRefreshInterval
-         * @type int
-         * @default 250 ms
-         */
-        this.canvasRefreshInterval = 250;
-
-        /**
-         * width of component
-         * @attribute width
-         * @type int
-         * @default 0
-         */
-        this.width = 0;
-
-        /**
-         * height of component
-         * @attribute height
-         * @type int
-         * @default 0
-         */
-        this.height = 0;
-
-        /**
-         * left offset for letterbox of video
-         * @attribute letterBoxLeft
-         * @type int
-         * @default 0
-         */
-        this.letterBoxLeft = 0;
-
-        /**
-         * top offset for letterbox of video
-         * @attribute letterBoxTop
-         * @type int
-         * @default 0
-         */
-        this.letterBoxTop = 0;
-
-        /**
-         * aspect ratio of video
-         * @attribute aspectRatio
-         * @type float
-         * @default 0
-         */
-        this.aspectRatio = 0;
-
-        /**
-         * horizontal scale of video compared to original format
-         * @attribute scaleX
-         * @type float
-         * @default 0
-         */
-        this.scaleX = 0;
-
-        /**
-         * vertical scale of video compared to original format
-         * @attribute scaleY
-         * @type float
-         * @default 0
-         */
-        this.scaleY = 0;
+        _get(Object.getPrototypeOf(CCWCVideoPlayer.prototype), "constructor", this).apply(this, arguments);
     }
 
     _createClass(CCWCVideoPlayer, [{
-        key: "onResize",
+        key: "setProperties",
+        value: function setProperties() {
+            /**
+             * video source file or stream
+             * @attribute source
+             * @type string
+             */
+            this.source = "";
+
+            /**
+             * what type of data comes back with frame data event
+             * @attribute frameDataMode
+             * @type String
+             * @default imagedataurl
+             */
+            this.frameDataMode = 'imagedataurl';
+
+            /**
+             * determines whether to use the canvas element for display instead of the video element
+             * @attribute useCanvasForDisplay
+             * @type boolean
+             * @default false
+             */
+            this.useCanvasForDisplay = false;
+
+            /**
+             * refresh interval when using the canvas for display
+             * @attribute canvasRefreshInterval
+             * @type int
+             * @default 250 ms
+             */
+            this.canvasRefreshInterval = 250;
+
+            /**
+             * width of component
+             * @attribute width
+             * @type int
+             * @default 0
+             */
+            this.width = 0;
+
+            /**
+             * height of component
+             * @attribute height
+             * @type int
+             * @default 0
+             */
+            this.height = 0;
+
+            /**
+             * left offset for letterbox of video
+             * @attribute letterBoxLeft
+             * @type int
+             * @default 0
+             */
+            this.letterBoxLeft = 0;
+
+            /**
+             * top offset for letterbox of video
+             * @attribute letterBoxTop
+             * @type int
+             * @default 0
+             */
+            this.letterBoxTop = 0;
+
+            /**
+             * aspect ratio of video
+             * @attribute aspectRatio
+             * @type float
+             * @default 0
+             */
+            this.aspectRatio = 0;
+
+            /**
+             * horizontal scale of video compared to original format
+             * @attribute scaleX
+             * @type float
+             * @default 0
+             */
+            this.scaleX = 0;
+
+            /**
+             * vertical scale of video compared to original format
+             * @attribute scaleY
+             * @type float
+             * @default 0
+             */
+            this.scaleY = 0;
+        }
 
         /**
          * update canvas dimensions when resized
          *
          * @method: onResize
          */
+    }, {
+        key: "onResize",
         value: function onResize() {
             // set size properties based on component height
             this.width = this.offsetWidth;
@@ -176,20 +187,32 @@ var CCWCVideoPlayer = (function (_HTMLElement) {
          * @return {object} image data
          */
         value: function getCurrentFrameData(mode, noredraw) {
+            var data;
             if (!mode) {
-                mode = "image";
+                mode = this.frameDataMode;
             }
             if (!noredraw) {
                 this.canvasElement.setAttribute('width', this.width);
                 this.canvasElement.setAttribute('height', this.height);
                 this.canvasctx.drawImage(this.videoElement, 0, 0);
             }
-            var data = this.canvasElement.toDataURL("image/png");
-            if (mode == "binary") {
-                var base64Data = data.replace('data:image/png;base64', "");
-                var binaryData = new Buffer(base64Data, 'base64');
-                data = binaryData;
+
+            switch (mode) {
+                case 'binary':
+                    var base64Data = data.replace('data:image/png;base64', "");
+                    var binaryData = new Buffer(base64Data, 'base64');
+                    data = binaryData;
+                    break;
+
+                case 'imagedataurl':
+                    data = this.canvasElement.toDataURL("image/png");
+                    break;
+
+                case 'imagedata':
+                    data = this.canvasctx.getImageData(0, 0, this.width, this.height);
+                    break;
             }
+
             // todo: non-binary mode for assigning data to image elements for example
             return data;
         }
@@ -229,16 +252,17 @@ var CCWCVideoPlayer = (function (_HTMLElement) {
                 this.useCanvasForDisplay = false;
             }
 
-            if (this.hasAttribute('frame-update')) {
-                this.frameUpdateHandler = this.getAttribute('frame-update');
-                console.log(this.frameUpdateHandler);
+            if (this.hasAttribute('frameDataMode')) {
+                this.frameDataMode = this.getAttribute('frameDataMode');
             }
         }
     }, {
         key: "createdCallback",
 
         // Fires when an instance of the element is created.
-        value: function createdCallback() {}
+        value: function createdCallback() {
+            this.setProperties();
+        }
     }, {
         key: "attachedCallback",
 
@@ -257,18 +281,25 @@ var CCWCVideoPlayer = (function (_HTMLElement) {
 
             this.videoElement = this.root.querySelector('#vid');
             this.canvasElement = this.root.querySelector('#canvas');
-
-            this.parseAttributes();
-
             this.videoElement.onloadedmetadata = function (e) {
                 _this.onResize();
             };
 
+            this.parseAttributes();
+
             if (this.useCanvasForDisplay) {
                 this.videoElement.style.display = 'none';
                 this.tick = setInterval(function () {
+                    if (_this.width === 0 || _this.height === 0) {
+                        return;
+                    }
                     _this.canvasctx.drawImage(_this.videoElement, 0, 0);
-                    var event = new CustomEvent('frameupdate', { detail: { framedata: _this.getCurrentFrameData(null, true) } });
+                    var event = new CustomEvent('frameupdate', { detail: {
+                            framedata: _this.getCurrentFrameData(null, true),
+                            canvascontext: _this.canvasctx,
+                            width: _this.width,
+                            height: _this.height } });
+
                     _this.root.dispatchEvent(event);
                 }, this.canvasRefreshInterval);
             } else {
@@ -287,11 +318,6 @@ var CCWCVideoPlayer = (function (_HTMLElement) {
         // Fires when an attribute was added, removed, or updated.
         value: function attributeChangedCallback(attr, oldVal, newVal) {
             console.log(attr, oldVal);
-        }
-    }, {
-        key: "onFrameUpdate",
-        set: function set(callback) {
-            this.onFrameUpdate = callback;
         }
     }]);
 
