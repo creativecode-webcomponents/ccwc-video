@@ -212,7 +212,6 @@ class CCWCVideoPlayer extends HTMLElement {
     parseAttributes() {
         if (this.hasAttribute('src')) {
             this.source = this.getAttribute('src');
-            this.setSource(this.source);
         }
 
         if (this.hasAttribute('useCanvasForDisplay')) {
@@ -224,11 +223,16 @@ class CCWCVideoPlayer extends HTMLElement {
         if (this.hasAttribute('frameDataMode')) {
             this.frameDataMode = this.getAttribute('frameDataMode');
         }
+
+        if (this.hasAttribute('canvasRefreshInterval')) {
+            this.canvasRefreshInterval = parseInt(this.getAttribute('canvasRefreshInterval'));
+        }
     };
 
     // Fires when an instance of the element is created.
     createdCallback() {
         this.setProperties();
+        this.parseAttributes();
     };
 
     // Fires when an instance was inserted into the document.
@@ -247,8 +251,7 @@ class CCWCVideoPlayer extends HTMLElement {
         this.videoElement.onloadedmetadata = e => {
             this.onResize();
         };
-
-        this.parseAttributes();
+        this.setSource(this.source);
 
         if (this.useCanvasForDisplay) {
             this.videoElement.style.display = 'none';

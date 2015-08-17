@@ -243,7 +243,6 @@ var CCWCVideoPlayer = (function (_HTMLElement) {
         value: function parseAttributes() {
             if (this.hasAttribute('src')) {
                 this.source = this.getAttribute('src');
-                this.setSource(this.source);
             }
 
             if (this.hasAttribute('useCanvasForDisplay')) {
@@ -255,6 +254,10 @@ var CCWCVideoPlayer = (function (_HTMLElement) {
             if (this.hasAttribute('frameDataMode')) {
                 this.frameDataMode = this.getAttribute('frameDataMode');
             }
+
+            if (this.hasAttribute('canvasRefreshInterval')) {
+                this.canvasRefreshInterval = parseInt(this.getAttribute('canvasRefreshInterval'));
+            }
         }
     }, {
         key: "createdCallback",
@@ -262,6 +265,7 @@ var CCWCVideoPlayer = (function (_HTMLElement) {
         // Fires when an instance of the element is created.
         value: function createdCallback() {
             this.setProperties();
+            this.parseAttributes();
         }
     }, {
         key: "attachedCallback",
@@ -284,8 +288,7 @@ var CCWCVideoPlayer = (function (_HTMLElement) {
             this.videoElement.onloadedmetadata = function (e) {
                 _this.onResize();
             };
-
-            this.parseAttributes();
+            this.setSource(this.source);
 
             if (this.useCanvasForDisplay) {
                 this.videoElement.style.display = 'none';
