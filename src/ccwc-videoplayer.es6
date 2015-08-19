@@ -98,11 +98,9 @@ class CCWCVideoPlayer extends HTMLElement {
         this.width = this.offsetWidth;
         this.height = this.offsetHeight;
 
-        // set video to component size
+        // set video/canvas to component size
         this.videoElement.setAttribute("width", this.width);
         this.videoElement.setAttribute("height", this.height);
-
-        // set canvas to component size
         this.canvasElement.setAttribute("width", this.width);
         this.canvasElement.setAttribute("height", this.height);
 
@@ -112,16 +110,18 @@ class CCWCVideoPlayer extends HTMLElement {
 
         // calculate aspect ratio
         this.aspectRatio = this.videoElement.videoWidth / this.videoElement.videoHeight;
+        this.videoScaledWidth = this.width;
+        this.videoScaledHeight = this.height;
 
         // calculate letterbox borders
         var componentAspectRatio = this.width/this.height;
         if (componentAspectRatio < this.aspectRatio) {
-            var newVideoHeight = this.width / this.aspectRatio;
-            this.letterBoxTop = this.height - newVideoHeight;
+            this.videoScaledHeight = this.width / this.aspectRatio;
+            this.letterBoxTop = this.height/2 - this.videoScaledHeight/2;
             this.letterBoxLeft = 0;
         } else if (componentAspectRatio > this.aspectRatio) {
-            var newVideoWidth = this.height / this.aspectRatio;
-            this.letterBoxLeft = this.width - newVideoWidth;
+            this.videoScaledWidth = this.height * this.aspectRatio;
+            this.letterBoxLeft = this.width/2 - this.videoScaledWidth/2;
             this.letterBoxTop = 0;
         } else {
             this.letterBoxTop = 0;
@@ -257,7 +257,7 @@ class CCWCVideoPlayer extends HTMLElement {
             this.videoElement.style.display = 'none';
             this.tick = setInterval(() => {
                 if (this.width === 0 || this.height === 0) { return; }
-                this.canvasctx.drawImage(this.videoElement, 0, 0);
+                this.canvasctx.drawImage(this.videoElement, this.letterBoxLeft, this.letterBoxTop, this.videoScaledWidth, this.videoScaledHeight);
                 var event = new CustomEvent('frameupdate', { detail: {
                     framedata: this.getCurrentFrameData(null, true),
                     canvascontext: this.canvasctx,
