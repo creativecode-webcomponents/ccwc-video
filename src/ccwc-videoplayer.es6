@@ -167,7 +167,9 @@ class CCWCVideoPlayer extends HTMLElement {
         if (!noredraw) {
             this.canvasElement.setAttribute('width', this.width);
             this.canvasElement.setAttribute('height', this.height);
-            this.canvasctx.drawImage(this.videoElement, 0, 0);
+            this.canvasctx.drawImage(this.videoElement,
+                this.letterBoxLeft, this.letterBoxTop, this.videoScaledWidth, this.videoScaledHeight,
+                this.letterBoxLeft, this.letterBoxTop, this.videoScaledWidth, this.videoScaledHeight);
         }
 
         switch (mode) {
@@ -182,7 +184,7 @@ class CCWCVideoPlayer extends HTMLElement {
                 break;
 
             case 'imagedata':
-                data = this.canvasctx.getImageData(0, 0, this.width, this.height);
+                data = this.canvasctx.getImageData(this.letterBoxLeft, this.letterBoxTop, this.videoScaledWidth, this.videoScaledHeight);
                 break;
         }
 
@@ -261,6 +263,10 @@ class CCWCVideoPlayer extends HTMLElement {
                 var event = new CustomEvent('frameupdate', { detail: {
                     framedata: this.getCurrentFrameData(null, true),
                     canvascontext: this.canvasctx,
+                    videoWidth: this.videoScaledWidth,
+                    videoHeight: this.videoScaledHeight,
+                    videoLeft: this.letterBoxLeft,
+                    videoTop: this.letterBoxTop,
                     width: this.width,
                     height: this.height }});
 
