@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+        <title>Demo: Steal Internal Canvas</title>
+        <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
+        <link rel="import" href="../ccwc-video.html">
+
+        <style>
+            ccwc-video {
+                width: 250px;
+                height: 250px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <h2>Demo: Steal Internal Canvas (using camera feed)</h2>
+        <p>
+            Instead of multiple canvas drawing, steal the video player's internal canvas context for ourselves outside of the component. Be sure you aren't using "useCanvasForDisplay" or the video element will be hidden
+        </p>
+        <ccwc-video
+                src="1" useCamera
+                canvasRefreshInterval="100"
+                frameDataMode="imagedata">
+        </ccwc-video>
+
+        <canvas></canvas>
+    </body>
+
+    <script>
+        var mycanvas = document.querySelector('canvas');
+        var videoplayer = document.querySelector('ccwc-video');
+        if (videoplayer.isReady) {
+            videoplayer.canvasContext = mycanvas.getContext('2d');
+        } else {
+            document.querySelector('ccwc-video').addEventListener('ready', function(event) {
+                videoplayer.canvasContext = mycanvas.getContext('2d');
+            });
+        }
+    </script>
+</html>

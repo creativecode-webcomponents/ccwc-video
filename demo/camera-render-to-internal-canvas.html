@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+        <title>Demo: Use Internal Canvas for Display</title>
+        <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
+        <link rel="import" href="../ccwc-video.html">
+
+        <style>
+            ccwc-video {
+                width: 250px;
+                height: 250px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <h2>Demo: Use Internal Canvas for Display (using camera feed)</h2>
+        <p>
+            Here we're watching not the actual camera feed but the canvas. We've set the refresh interval to 250ms to make it super obvious
+        </p>
+        <ccwc-video
+                src="1" useCamera
+                canvasRefreshInterval="250"
+                useCanvasForDisplay>
+        </ccwc-video>
+    </body>
+</html>

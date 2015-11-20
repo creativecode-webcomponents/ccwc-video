@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>Demo: Start a Webcam View (make sure to allow them when prompted)</title>
+    <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
+    <link rel="import" href="../ccwc-video.html">
+
+    <style>
+        ccwc-video {
+            width: 250px;
+            height: 250px;
+        }
+    </style>
+</head>
+
+<body>
+<h2>Demo: Start a Webcam View (make sure to allow them when prompted)</h2>
+<p>
+    Simply show video from your camera. May not work off the bat, you may need to select a different video source index. If you don't know
+    which to use, try the find_cameras.html demo to get a list of your cameras
+</p>
+<ccwc-video useCamera src="1"></ccwc-video>
+
+</body>
+</html>
