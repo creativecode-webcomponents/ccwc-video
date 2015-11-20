@@ -273,8 +273,6 @@ class CCWCVideo extends HTMLElement {
                 data = this.canvasctx.getImageData(this.letterBoxLeft, this.letterBoxTop, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
                 break;
         }
-
-        // todo: non-binary mode for assigning data to image elements for example
         return data;
     };
 
