@@ -1,0 +1,2240 @@
+[
+  {
+    "__docId__": 0,
+    "kind": "file",
+    "static": true,
+    "variation": null,
+    "name": "src/ccwc-video.es6",
+    "memberof": null,
+    "longname": "src/ccwc-video.es6",
+    "access": null,
+    "description": null,
+    "lineNumber": 5,
+    "content": "/**\n * CCWCVideo supports both video files and camera feeds\n * Blit your video to a canvas, get frame data, scale the frame/canvas output, and render video to an external canvas of your choosing\n */\nclass CCWCVideo extends HTMLElement {\n\n    /**\n     * initialize default class properties\n     * @private\n     */\n    setProperties() {\n        /**\n         * video source file or stream\n         * @type {string}\n         * @private\n         */\n        this._source = '';\n\n        /**\n         * use camera\n         * @type {boolean}\n         * @private\n         */\n        this._useCamera = false;\n\n        /**\n         * is component ready\n         * @type {boolean}\n         */\n        this.isReady = false;\n\n        /**\n         * width of scaled video\n         * @type {int}\n         */\n        this.videoScaledWidth = 0;\n\n        /**\n         * width of scaled video\n         * @type {int}\n         */\n        this.videoScaledWidth = 0;\n\n        /**\n         * height of scaled video\n         * @type {int}\n         */\n        this.videoScaledHeight = 0;\n\n        /**\n         * what type of data comes back with frame data event\n         * @type {string}\n         * @default imagedataurl\n         */\n        this.frameDataMode = 'imagedataurl';\n\n        /**\n         * determines whether to use the canvas element for display instead of the video element\n         * @type {boolean}\n         * @default false\n         */\n        this.useCanvasForDisplay = false;\n\n        /**\n         * refresh interval when using the canvas for display\n         * @type {int}\n         * @default 0 ms\n         */\n        this.canvasRefreshInterval = 0;\n\n        /**\n         * video element\n         * @type {HTMLElement}\n         * @private\n         */\n        this.videoElement = null;\n\n        /**\n         * camera sources list\n         * @type {Array}\n         */\n        this.cameraSources = [];\n\n        /**\n         * canvas element\n         * @type {Canvas}\n         * @private\n         */\n        this.canvasElement = null;\n\n        /**\n         * component shadow root\n         * @type {ShadowRoot}\n         * @private\n         */\n        this.root = null;\n\n        /**\n         * interval timer to draw frame redraws\n         * @type {int}\n         * @private\n         */\n        this.tick = null;\n\n        /**\n         * canvas context\n         * @type {CanvasContext}\n         * @private\n         */\n        this.canvasctx = null;\n\n        /**\n         * width of component\n         * @type {int}\n         * @default 0\n         */\n        this.width = 0;\n\n        /**\n         * height of component\n         * @type {int}\n         * @default 0\n         */\n        this.height = 0;\n\n        /**\n         * left offset for letterbox of video\n         * @type {int}\n         * @default 0\n         */\n        this.letterBoxLeft = 0;\n\n        /**\n         * top offset for letterbox of video\n         * @type {int}\n         * @default 0\n         */\n        this.letterBoxTop = 0;\n\n        /**\n         * aspect ratio of video\n         * @type {number}\n         */\n        this.aspectRatio = 0;\n\n        /**\n         * render scale for canvas frame data\n         * best used when grabbing frame data at a different size than the shown video\n         * @attribute canvasScale\n         * @type {float}\n         * @default 1.0\n         */\n        this.canvasScale = 1.0;\n    }\n\n    /**\n     * update canvas dimensions when resized\n     * @private\n     */\n    onResize() {\n        // set size properties based on component height\n        this.width = this.offsetWidth;\n        this.height = this.offsetHeight;\n\n        // set video/canvas to component size\n        this.videoElement.setAttribute('width', this.width);\n        this.videoElement.setAttribute('height', this.height);\n        this.canvasElement.setAttribute('width', this.width);\n        this.canvasElement.setAttribute('height', this.height);\n\n        // calculate aspect ratio\n        this.aspectRatio = this.videoElement.videoWidth / this.videoElement.videoHeight;\n        this.videoScaledWidth = this.width;\n        this.videoScaledHeight = this.height;\n\n        // calculate letterbox borders\n        var componentAspectRatio = this.width/this.height;\n        if (componentAspectRatio < this.aspectRatio) {\n            this.videoScaledHeight = this.width / this.aspectRatio;\n            this.letterBoxTop = this.height/2 - this.videoScaledHeight/2;\n            this.letterBoxLeft = 0;\n        } else if (componentAspectRatio > this.aspectRatio) {\n            this.videoScaledWidth = this.height * this.aspectRatio;\n            this.letterBoxLeft = this.width/2 - this.videoScaledWidth/2;\n            this.letterBoxTop = 0;\n        } else {\n            this.letterBoxTop = 0;\n            this.letterBoxLeft = 0;\n        }\n    };\n\n\n    /**\n     * set video source\n     * @param {string | int} src video source uri\n     */\n    set source(src) {\n        if (!src) { return; }\n        this._source = src;\n\n        if (this._useCamera && this.cameraSources.length === 0) {\n            this.refreshCameraSources();\n            return;\n        }\n\n        if (this._useCamera || parseInt(src) === src) {\n            this.setCameraSourceByIndex(src);\n        } else if (this._useCamera) {\n            this.setCameraSourceByID(src);\n        } else {\n            this.videoElement.src = src;\n        }\n    };\n\n    /**\n     * get video source\n     * @return {string | int} src video source uri\n     */\n    get source() {\n        return this._source;\n    };\n\n    /**\n     * get canvas context for drawing into it\n     * @return {object} context canvas context\n     */\n    get canvasContext() {\n        return this.canvasctx;\n    };\n\n    /**\n     * get canvas context for drawing into it\n     * @param {object} context canvas context\n     */\n    set canvasContext(context) {\n        this.canvasctx = context;\n    };\n\n    /**\n     * get image data for current frame\n     * @param {boolean} mode data mode (binary or base64)\n     * @param {boolean} noredraw do not perform redraw (can be wasteful)\n     * @return {object} image data\n     */\n    getCurrentFrameData(mode, noredraw) {\n        var data;\n        if (!mode) {\n            mode = this.frameDataMode;\n        }\n        if (!noredraw) {\n            this.canvasctx.canvas.width = this.width * this.canvasScale;\n            this.canvasctx.canvas.height = this.height * this.canvasScale;\n            this.canvasctx.drawImage(\n                this.videoElement,\n                this.letterBoxLeft,\n                this.letterBoxTop,\n                this.videoScaledWidth * this.canvasScale,\n                this.videoScaledHeight * this.canvasScale);\n        }\n\n        switch (mode) {\n            case 'binary':\n                var base64Data = data.replace('data:image/png;base64', '');\n                var binaryData = new Buffer(base64Data, 'base64');\n                data = binaryData;\n                break;\n\n            case 'imagedataurl':\n                data = this.canvasElement.toDataURL('image/png');\n                break;\n\n            case 'imagedata':\n                data = this.canvasctx.getImageData(this.letterBoxLeft, this.letterBoxTop, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);\n                break;\n        }\n        return data;\n    };\n\n    /**\n     * set camera source by index\n     * @param {int} index\n     */\n    setCameraSourceByIndex(index) {\n        if (!index || index >= this.cameraSources.length) { console.log(\"Video Source Index does not exist\"); return; }\n        this.setCameraSourceByID(this.cameraSources[index].id);\n    };\n\n    /**\n     * set camera source by id\n     * @param {String} id\n     */\n    setCameraSourceByID(id) {\n        navigator.webkitGetUserMedia(\n            { video: {optional: [{sourceId: id }]}},\n            this.onCameraStream.bind(this),\n            function() {}\n        );\n    };\n\n    /**\n     * refresh camera sources\n     */\n    refreshCameraSources() {\n        this.cameraSources = [];\n        MediaStreamTrack.getSources( sources => {\n            this.onCameraSources(sources);\n        });\n    };\n\n    /**\n     * on camera video source stream\n     * @param stream\n     * @private\n     */\n    onCameraStream(stream) {\n        this.videoElement.src = URL.createObjectURL(stream);\n        this.videoElement.onloadedmetadata = e => {\n            this.onResize();\n        };\n    };\n\n    /**\n     * on camera sources callback\n     * @param {array} sources found\n     * @private\n     */\n    onCameraSources(sources) {\n        var storageIndex = 0;\n        for (var i=0; i < sources.length; i++) {\n            if (sources[i].kind == 'video') {\n                var label = sources[i].label;\n                if (label == \"\") { label = \"video \" + Number(storageIndex+1); }\n                sources[storageIndex] = sources[i].id;\n                this.cameraSources.push({ label: label, id: sources[i].id });\n                storageIndex++;\n            }\n        }\n\n        var event = new CustomEvent('camerasfound', { detail: { cameras: this.cameraSources } });\n        this.dispatchEvent(event);\n        if (this._source) { this.source = this._source; }\n    };\n\n    /**\n     * save current frame to file\n     * @param {String} path file path\n     */\n    saveCurrentFrameToFile(path) {\n        var fs = require('fs');\n        if (!fs) {\n            throw new Error('This method uses Node.js functionality, and you are not running within Node.js');\n        }\n        var data = this.getCurrentFrameData().toString('binary');\n        fs.writeFileSync(path, data, 'binary');\n    };\n\n    /**\n     * parse attributes on element\n     * @private\n     */\n    parseAttributes() {\n        if (this.hasAttribute('useCamera')) {\n            this._useCamera = true;\n        } else {\n            this._useCamera = false;\n        }\n\n        if (this.hasAttribute('src')) {\n            this._source = this.getAttribute('src');\n        }\n\n        if (this.hasAttribute('useCanvasForDisplay')) {\n            this.useCanvasForDisplay = true;\n        } else {\n            this.useCanvasForDisplay = false;\n        }\n\n        if (this.hasAttribute('frameDataMode')) {\n            this.frameDataMode = this.getAttribute('frameDataMode');\n        }\n\n        if (this.hasAttribute('canvasRefreshInterval')) {\n            this.canvasRefreshInterval = parseInt(this.getAttribute('canvasRefreshInterval'));\n        }\n\n        if (this.hasAttribute('canvasScale')) {\n            this.canvasScale = parseFloat(this.getAttribute('canvasScale'));\n        }\n\n        if (this.canvasRefreshInterval === 0 && this.useCanvasForDisplay) {\n            console.log('Warning: Using canvas for display, but the canvas refresh interval is not set or set to 0. Setting refresh interval to 250ms.');\n            this.canvasRefreshInterval = 250;\n        }\n    };\n\n    /**\n     * element created callback\n     * @private\n     */\n    createdCallback() {\n        this.setProperties();\n        this.parseAttributes();\n    };\n\n    /**\n     * element attached callback\n     * @private\n     */\n    attachedCallback() {\n        let template = this.owner.querySelector(\"template\");\n        let clone = template.content.cloneNode(true);\n        this.root = this.createShadowRoot();\n        this.root.appendChild(clone);\n\n        window.addEventListener('HTMLImportsLoaded', e => {\n            this.onResize();\n        });\n\n        this.videoElement = this.root.querySelector('#vid');\n        this.canvasElement = this.root.querySelector('#canvas');\n        this.videoElement.onloadedmetadata = e => {\n            this.onResize();\n        };\n        this.source = this._source;\n        if (this.useCanvasForDisplay) {\n            this.videoElement.style.display = 'none';\n        } else {\n            this.canvasElement.style.display = 'none';\n        }\n\n        if (this.canvasRefreshInterval > 0) {\n            this.tick = setInterval(() => {\n                if (this.width === 0 || this.height === 0) { return; }\n                var event = new CustomEvent('frameupdate', { detail: {\n                    framedata: this.getCurrentFrameData(),\n                    canvascontext: this.canvasctx,\n                    videoWidth: this.videoScaledWidth * this.canvasScale,\n                    videoHeight: this.videoScaledHeight * this.canvasScale,\n                    videoLeft: this.letterBoxLeft * this.canvasScale,\n                    videoTop: this.letterBoxTop * this.canvasScale,\n                    width: this.width * this.canvasScale,\n                    height: this.height * this.canvasScale }});\n\n                this.dispatchEvent(event);\n            }, this.canvasRefreshInterval);\n        }\n        this.canvasctx = this.canvasElement.getContext('2d');\n\n        this.isReady = true;\n        var event = new CustomEvent('ready');\n        this.dispatchEvent(event);\n    };\n\n    /**\n     * element detached callback\n     * @private\n     */\n    detachedCallback() {};\n\n\n    /**\n     * attributeChangedCallback\n     * @private\n     * @param {String} attr attribute changed\n     * @param {*} oldVal old value\n     * @param {*} newVal new value\n     */\n    attributeChangedCallback(attr, oldVal, newVal) {};\n\n}\n\nCCWCVideo.prototype.owner = (document._currentScript || document.currentScript).ownerDocument;\ndocument.registerElement('ccwc-video', CCWCVideo);"
+  },
+  {
+    "__docId__": 1,
+    "kind": "class",
+    "static": true,
+    "variation": null,
+    "name": "CCWCVideo",
+    "memberof": "src/ccwc-video.es6",
+    "longname": "src/ccwc-video.es6~CCWCVideo",
+    "access": null,
+    "export": false,
+    "importPath": "ccwc-video/src/ccwc-video.es6",
+    "importStyle": null,
+    "description": "CCWCVideo supports both video files and camera feeds\nBlit your video to a canvas, get frame data, scale the frame/canvas output, and render video to an external canvas of your choosing",
+    "lineNumber": 5,
+    "interface": false,
+    "extends": [
+      "HTMLElement"
+    ]
+  },
+  {
+    "__docId__": 2,
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "setProperties",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#setProperties",
+    "access": "private",
+    "description": "initialize default class properties",
+    "lineNumber": 11,
+    "params": [],
+    "generator": false
+  },
+  {
+    "__docId__": 3,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "_source",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#_source",
+    "access": "private",
+    "description": "video source file or stream",
+    "lineNumber": 17,
+    "type": {
+      "nullable": null,
+      "types": [
+        "string"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 4,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "_useCamera",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#_useCamera",
+    "access": "private",
+    "description": "use camera",
+    "lineNumber": 24,
+    "type": {
+      "nullable": null,
+      "types": [
+        "boolean"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 5,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "isReady",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#isReady",
+    "access": null,
+    "description": "is component ready",
+    "lineNumber": 30,
+    "type": {
+      "nullable": null,
+      "types": [
+        "boolean"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 6,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "videoScaledWidth",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#videoScaledWidth",
+    "access": null,
+    "description": "width of scaled video",
+    "lineNumber": 36,
+    "type": {
+      "nullable": null,
+      "types": [
+        "int"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 7,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "videoScaledWidth",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#videoScaledWidth",
+    "access": null,
+    "description": "width of scaled video",
+    "lineNumber": 42,
+    "type": {
+      "nullable": null,
+      "types": [
+        "int"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 8,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "videoScaledHeight",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#videoScaledHeight",
+    "access": null,
+    "description": "height of scaled video",
+    "lineNumber": 48,
+    "type": {
+      "nullable": null,
+      "types": [
+        "int"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 9,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "frameDataMode",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#frameDataMode",
+    "access": null,
+    "description": "what type of data comes back with frame data event",
+    "lineNumber": 55,
+    "unknown": [
+      {
+        "tagName": "@default",
+        "tagValue": "imagedataurl"
+      }
+    ],
+    "type": {
+      "nullable": null,
+      "types": [
+        "string"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 10,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "useCanvasForDisplay",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#useCanvasForDisplay",
+    "access": null,
+    "description": "determines whether to use the canvas element for display instead of the video element",
+    "lineNumber": 62,
+    "unknown": [
+      {
+        "tagName": "@default",
+        "tagValue": "false"
+      }
+    ],
+    "type": {
+      "nullable": null,
+      "types": [
+        "boolean"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 11,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "canvasRefreshInterval",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#canvasRefreshInterval",
+    "access": null,
+    "description": "refresh interval when using the canvas for display",
+    "lineNumber": 69,
+    "unknown": [
+      {
+        "tagName": "@default",
+        "tagValue": "0 ms"
+      }
+    ],
+    "type": {
+      "nullable": null,
+      "types": [
+        "int"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 12,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "videoElement",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#videoElement",
+    "access": "private",
+    "description": "video element",
+    "lineNumber": 76,
+    "type": {
+      "nullable": null,
+      "types": [
+        "HTMLElement"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 13,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "cameraSources",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#cameraSources",
+    "access": null,
+    "description": "camera sources list",
+    "lineNumber": 82,
+    "type": {
+      "nullable": null,
+      "types": [
+        "Array"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 14,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "canvasElement",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#canvasElement",
+    "access": "private",
+    "description": "canvas element",
+    "lineNumber": 89,
+    "type": {
+      "nullable": null,
+      "types": [
+        "Canvas"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 15,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "root",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#root",
+    "access": "private",
+    "description": "component shadow root",
+    "lineNumber": 96,
+    "type": {
+      "nullable": null,
+      "types": [
+        "ShadowRoot"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 16,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "tick",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#tick",
+    "access": "private",
+    "description": "interval timer to draw frame redraws",
+    "lineNumber": 103,
+    "type": {
+      "nullable": null,
+      "types": [
+        "int"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 17,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "canvasctx",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#canvasctx",
+    "access": "private",
+    "description": "canvas context",
+    "lineNumber": 110,
+    "type": {
+      "nullable": null,
+      "types": [
+        "CanvasContext"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 18,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "width",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#width",
+    "access": null,
+    "description": "width of component",
+    "lineNumber": 117,
+    "unknown": [
+      {
+        "tagName": "@default",
+        "tagValue": "0"
+      }
+    ],
+    "type": {
+      "nullable": null,
+      "types": [
+        "int"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 19,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "height",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#height",
+    "access": null,
+    "description": "height of component",
+    "lineNumber": 124,
+    "unknown": [
+      {
+        "tagName": "@default",
+        "tagValue": "0"
+      }
+    ],
+    "type": {
+      "nullable": null,
+      "types": [
+        "int"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 20,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "letterBoxLeft",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#letterBoxLeft",
+    "access": null,
+    "description": "left offset for letterbox of video",
+    "lineNumber": 131,
+    "unknown": [
+      {
+        "tagName": "@default",
+        "tagValue": "0"
+      }
+    ],
+    "type": {
+      "nullable": null,
+      "types": [
+        "int"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 21,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "letterBoxTop",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#letterBoxTop",
+    "access": null,
+    "description": "top offset for letterbox of video",
+    "lineNumber": 138,
+    "unknown": [
+      {
+        "tagName": "@default",
+        "tagValue": "0"
+      }
+    ],
+    "type": {
+      "nullable": null,
+      "types": [
+        "int"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 22,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "aspectRatio",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#aspectRatio",
+    "access": null,
+    "description": "aspect ratio of video",
+    "lineNumber": 144,
+    "type": {
+      "nullable": null,
+      "types": [
+        "number"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 23,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "canvasScale",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#canvasScale",
+    "access": null,
+    "description": "render scale for canvas frame data\nbest used when grabbing frame data at a different size than the shown video",
+    "lineNumber": 153,
+    "unknown": [
+      {
+        "tagName": "@attribute",
+        "tagValue": "canvasScale"
+      },
+      {
+        "tagName": "@default",
+        "tagValue": "1.0"
+      }
+    ],
+    "type": {
+      "nullable": null,
+      "types": [
+        "float"
+      ],
+      "spread": false,
+      "description": null
+    }
+  },
+  {
+    "__docId__": 24,
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "onResize",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#onResize",
+    "access": "private",
+    "description": "update canvas dimensions when resized",
+    "lineNumber": 160,
+    "params": [],
+    "generator": false
+  },
+  {
+    "__docId__": 25,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "width",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#width",
+    "access": null,
+    "description": null,
+    "lineNumber": 162,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 26,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "height",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#height",
+    "access": null,
+    "description": null,
+    "lineNumber": 163,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 27,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "aspectRatio",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#aspectRatio",
+    "access": null,
+    "description": null,
+    "lineNumber": 172,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 28,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "videoScaledWidth",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#videoScaledWidth",
+    "access": null,
+    "description": null,
+    "lineNumber": 173,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 29,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "videoScaledHeight",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#videoScaledHeight",
+    "access": null,
+    "description": null,
+    "lineNumber": 174,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 30,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "videoScaledHeight",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#videoScaledHeight",
+    "access": null,
+    "description": null,
+    "lineNumber": 179,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 31,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "letterBoxTop",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#letterBoxTop",
+    "access": null,
+    "description": null,
+    "lineNumber": 180,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 32,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "letterBoxLeft",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#letterBoxLeft",
+    "access": null,
+    "description": null,
+    "lineNumber": 181,
+    "undocument": true,
+    "type": {
+      "types": [
+        "number"
+      ]
+    }
+  },
+  {
+    "__docId__": 33,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "videoScaledWidth",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#videoScaledWidth",
+    "access": null,
+    "description": null,
+    "lineNumber": 183,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 34,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "letterBoxLeft",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#letterBoxLeft",
+    "access": null,
+    "description": null,
+    "lineNumber": 184,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 35,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "letterBoxTop",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#letterBoxTop",
+    "access": null,
+    "description": null,
+    "lineNumber": 185,
+    "undocument": true,
+    "type": {
+      "types": [
+        "number"
+      ]
+    }
+  },
+  {
+    "__docId__": 36,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "letterBoxTop",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#letterBoxTop",
+    "access": null,
+    "description": null,
+    "lineNumber": 187,
+    "undocument": true,
+    "type": {
+      "types": [
+        "number"
+      ]
+    }
+  },
+  {
+    "__docId__": 37,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "letterBoxLeft",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#letterBoxLeft",
+    "access": null,
+    "description": null,
+    "lineNumber": 188,
+    "undocument": true,
+    "type": {
+      "types": [
+        "number"
+      ]
+    }
+  },
+  {
+    "__docId__": 38,
+    "kind": "set",
+    "static": false,
+    "variation": null,
+    "name": "source",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#source",
+    "access": null,
+    "description": "set video source",
+    "lineNumber": 197,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "string ",
+          " int"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "src",
+        "description": "video source uri"
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "__docId__": 39,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "_source",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#_source",
+    "access": null,
+    "description": null,
+    "lineNumber": 199,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 40,
+    "kind": "get",
+    "static": false,
+    "variation": null,
+    "name": "source",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#source",
+    "access": null,
+    "description": "get video source",
+    "lineNumber": 219,
+    "return": {
+      "nullable": null,
+      "types": [
+        "string ",
+        " int"
+      ],
+      "spread": false,
+      "description": "src video source uri"
+    },
+    "type": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "__docId__": 41,
+    "kind": "get",
+    "static": false,
+    "variation": null,
+    "name": "canvasContext",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#canvasContext",
+    "access": null,
+    "description": "get canvas context for drawing into it",
+    "lineNumber": 227,
+    "return": {
+      "nullable": null,
+      "types": [
+        "object"
+      ],
+      "spread": false,
+      "description": "context canvas context"
+    },
+    "type": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "__docId__": 42,
+    "kind": "set",
+    "static": false,
+    "variation": null,
+    "name": "canvasContext",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#canvasContext",
+    "access": null,
+    "description": "get canvas context for drawing into it",
+    "lineNumber": 235,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "object"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "context",
+        "description": "canvas context"
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    },
+    "generator": false
+  },
+  {
+    "__docId__": 43,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "canvasctx",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#canvasctx",
+    "access": null,
+    "description": null,
+    "lineNumber": 236,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 44,
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "getCurrentFrameData",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#getCurrentFrameData",
+    "access": null,
+    "description": "get image data for current frame",
+    "lineNumber": 245,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "boolean"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "mode",
+        "description": "data mode (binary or base64)"
+      },
+      {
+        "nullable": null,
+        "types": [
+          "boolean"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "noredraw",
+        "description": "do not perform redraw (can be wasteful)"
+      }
+    ],
+    "return": {
+      "nullable": null,
+      "types": [
+        "object"
+      ],
+      "spread": false,
+      "description": "image data"
+    },
+    "generator": false
+  },
+  {
+    "__docId__": 45,
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "setCameraSourceByIndex",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#setCameraSourceByIndex",
+    "access": null,
+    "description": "set camera source by index",
+    "lineNumber": 283,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "int"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "index",
+        "description": ""
+      }
+    ],
+    "generator": false
+  },
+  {
+    "__docId__": 46,
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "setCameraSourceByID",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#setCameraSourceByID",
+    "access": null,
+    "description": "set camera source by id",
+    "lineNumber": 292,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "String"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "id",
+        "description": ""
+      }
+    ],
+    "generator": false
+  },
+  {
+    "__docId__": 47,
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "refreshCameraSources",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#refreshCameraSources",
+    "access": null,
+    "description": "refresh camera sources",
+    "lineNumber": 303,
+    "params": [],
+    "generator": false
+  },
+  {
+    "__docId__": 48,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "cameraSources",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#cameraSources",
+    "access": null,
+    "description": null,
+    "lineNumber": 304,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 49,
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "onCameraStream",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#onCameraStream",
+    "access": "private",
+    "description": "on camera video source stream",
+    "lineNumber": 315,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "*"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "stream",
+        "description": ""
+      }
+    ],
+    "generator": false
+  },
+  {
+    "__docId__": 50,
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "onCameraSources",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#onCameraSources",
+    "access": "private",
+    "description": "on camera sources callback",
+    "lineNumber": 327,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "array"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "sources",
+        "description": "found"
+      }
+    ],
+    "generator": false
+  },
+  {
+    "__docId__": 51,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "source",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#source",
+    "access": null,
+    "description": null,
+    "lineNumber": 341,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 52,
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "saveCurrentFrameToFile",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#saveCurrentFrameToFile",
+    "access": null,
+    "description": "save current frame to file",
+    "lineNumber": 348,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "String"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "path",
+        "description": "file path"
+      }
+    ],
+    "generator": false
+  },
+  {
+    "__docId__": 53,
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "parseAttributes",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#parseAttributes",
+    "access": "private",
+    "description": "parse attributes on element",
+    "lineNumber": 361,
+    "params": [],
+    "generator": false
+  },
+  {
+    "__docId__": 54,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "_useCamera",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#_useCamera",
+    "access": null,
+    "description": null,
+    "lineNumber": 363,
+    "undocument": true,
+    "type": {
+      "types": [
+        "boolean"
+      ]
+    }
+  },
+  {
+    "__docId__": 55,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "_useCamera",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#_useCamera",
+    "access": null,
+    "description": null,
+    "lineNumber": 365,
+    "undocument": true,
+    "type": {
+      "types": [
+        "boolean"
+      ]
+    }
+  },
+  {
+    "__docId__": 56,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "_source",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#_source",
+    "access": null,
+    "description": null,
+    "lineNumber": 369,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 57,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "useCanvasForDisplay",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#useCanvasForDisplay",
+    "access": null,
+    "description": null,
+    "lineNumber": 373,
+    "undocument": true,
+    "type": {
+      "types": [
+        "boolean"
+      ]
+    }
+  },
+  {
+    "__docId__": 58,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "useCanvasForDisplay",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#useCanvasForDisplay",
+    "access": null,
+    "description": null,
+    "lineNumber": 375,
+    "undocument": true,
+    "type": {
+      "types": [
+        "boolean"
+      ]
+    }
+  },
+  {
+    "__docId__": 59,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "frameDataMode",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#frameDataMode",
+    "access": null,
+    "description": null,
+    "lineNumber": 379,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 60,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "canvasRefreshInterval",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#canvasRefreshInterval",
+    "access": null,
+    "description": null,
+    "lineNumber": 383,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 61,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "canvasScale",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#canvasScale",
+    "access": null,
+    "description": null,
+    "lineNumber": 387,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 62,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "canvasRefreshInterval",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#canvasRefreshInterval",
+    "access": null,
+    "description": null,
+    "lineNumber": 392,
+    "undocument": true,
+    "type": {
+      "types": [
+        "number"
+      ]
+    }
+  },
+  {
+    "__docId__": 63,
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "createdCallback",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#createdCallback",
+    "access": "private",
+    "description": "element created callback",
+    "lineNumber": 400,
+    "params": [],
+    "generator": false
+  },
+  {
+    "__docId__": 64,
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "attachedCallback",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#attachedCallback",
+    "access": "private",
+    "description": "element attached callback",
+    "lineNumber": 409,
+    "params": [],
+    "generator": false
+  },
+  {
+    "__docId__": 65,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "root",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#root",
+    "access": null,
+    "description": null,
+    "lineNumber": 412,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 66,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "videoElement",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#videoElement",
+    "access": null,
+    "description": null,
+    "lineNumber": 419,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 67,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "canvasElement",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#canvasElement",
+    "access": null,
+    "description": null,
+    "lineNumber": 420,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 68,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "source",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#source",
+    "access": null,
+    "description": null,
+    "lineNumber": 424,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 69,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "tick",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#tick",
+    "access": null,
+    "description": null,
+    "lineNumber": 432,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 70,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "canvasctx",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#canvasctx",
+    "access": null,
+    "description": null,
+    "lineNumber": 447,
+    "undocument": true,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 71,
+    "kind": "member",
+    "static": false,
+    "variation": null,
+    "name": "isReady",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#isReady",
+    "access": null,
+    "description": null,
+    "lineNumber": 449,
+    "undocument": true,
+    "type": {
+      "types": [
+        "boolean"
+      ]
+    }
+  },
+  {
+    "__docId__": 72,
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "detachedCallback",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#detachedCallback",
+    "access": "private",
+    "description": "element detached callback",
+    "lineNumber": 458,
+    "params": [],
+    "generator": false
+  },
+  {
+    "__docId__": 73,
+    "kind": "method",
+    "static": false,
+    "variation": null,
+    "name": "attributeChangedCallback",
+    "memberof": "src/ccwc-video.es6~CCWCVideo",
+    "longname": "src/ccwc-video.es6~CCWCVideo#attributeChangedCallback",
+    "access": "private",
+    "description": "attributeChangedCallback",
+    "lineNumber": 468,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "String"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "attr",
+        "description": "attribute changed"
+      },
+      {
+        "nullable": null,
+        "types": [
+          "*"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "oldVal",
+        "description": "old value"
+      },
+      {
+        "nullable": null,
+        "types": [
+          "*"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "newVal",
+        "description": "new value"
+      }
+    ],
+    "generator": false
+  },
+  {
+    "__docId__": 75,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Infinity",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Infinity",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Infinity",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 76,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "NaN",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/NaN",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~NaN",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 77,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "undefined",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~undefined",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 78,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "null",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~null",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 79,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Object",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Object",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 80,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "object",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~object",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 81,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Function",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Function",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 82,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "function",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~function",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 83,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Boolean",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Boolean",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 84,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "boolean",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~boolean",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 85,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Symbol",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Symbol",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 86,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Error",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Error",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 87,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "EvalError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/EvalError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~EvalError",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 88,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "InternalError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/InternalError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~InternalError",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 89,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "RangeError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RangeError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~RangeError",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 90,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "ReferenceError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ReferenceError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~ReferenceError",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 91,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "SyntaxError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SyntaxError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~SyntaxError",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 92,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "TypeError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypeError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~TypeError",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 93,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "URIError",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/URIError",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~URIError",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 94,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Number",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Number",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 95,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "number",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~number",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 96,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Date",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Date",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 97,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "String",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~String",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 98,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "string",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~string",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 99,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "RegExp",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~RegExp",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 100,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 101,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Int8Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int8Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Int8Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 102,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Uint8Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Uint8Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 103,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Uint8ClampedArray",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8ClampedArray",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Uint8ClampedArray",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 104,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Int16Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int16Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Int16Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 105,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Uint16Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint16Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Uint16Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 106,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Int32Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int32Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Int32Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 107,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Uint32Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint32Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Uint32Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 108,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Float32Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Float32Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Float32Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 109,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Float64Array",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Float64Array",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Float64Array",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 110,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Map",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Map",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 111,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Set",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Set",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 112,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "WeakMap",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~WeakMap",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 113,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "WeakSet",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakSet",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~WeakSet",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 114,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "ArrayBuffer",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~ArrayBuffer",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 115,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "DataView",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~DataView",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 116,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "JSON",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~JSON",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 117,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Promise",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Promise",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 118,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Generator",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Generator",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Generator",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 119,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "GeneratorFunction",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/GeneratorFunction",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~GeneratorFunction",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 120,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Reflect",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Reflect",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Reflect",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 121,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Proxy",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy",
+    "memberof": "BuiltinExternal/ECMAScriptExternal.js",
+    "longname": "BuiltinExternal/ECMAScriptExternal.js~Proxy",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 123,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "CanvasRenderingContext2D",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "longname": "BuiltinExternal/WebAPIExternal.js~CanvasRenderingContext2D",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 124,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "DocumentFragment",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/DocumentFragment",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "longname": "BuiltinExternal/WebAPIExternal.js~DocumentFragment",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 125,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Element",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/Element",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "longname": "BuiltinExternal/WebAPIExternal.js~Element",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 126,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Event",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/Event",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "longname": "BuiltinExternal/WebAPIExternal.js~Event",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 127,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "Node",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/Node",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "longname": "BuiltinExternal/WebAPIExternal.js~Node",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 128,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "NodeList",
+    "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/NodeList",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "longname": "BuiltinExternal/WebAPIExternal.js~NodeList",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 129,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "XMLHttpRequest",
+    "externalLink": "https://developer.mozilla.org/en/docs/Web/API/XMLHttpRequest",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "longname": "BuiltinExternal/WebAPIExternal.js~XMLHttpRequest",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  },
+  {
+    "__docId__": 130,
+    "kind": "external",
+    "static": true,
+    "variation": null,
+    "name": "AudioContext",
+    "externalLink": "https://developer.mozilla.org/en/docs/Web/API/AudioContext",
+    "memberof": "BuiltinExternal/WebAPIExternal.js",
+    "longname": "BuiltinExternal/WebAPIExternal.js~AudioContext",
+    "access": null,
+    "description": null,
+    "builtinExternal": true
+  }
+]

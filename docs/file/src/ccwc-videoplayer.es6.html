@@ -1,8 +1,47 @@
-/**
- * CCWCVideo supports both video files and camera feeds
- * Blit your video to a canvas, get frame data, scale the frame/canvas output, and render video to an external canvas of your choosing
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl" href="../../">
+  <title data-ice="title">src/ccwc-videoplayer.es6 | API Document</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  
+  
+  <script src="script/manual.js"></script>
+</head>
+<body class="layout-container" data-ice="rootContainer">
+
+<header>
+  <a href="./">Home</a>
+  
+  <a href="identifiers.html">Reference</a>
+  <a href="source.html">Source</a>
+  
+  
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+</header>
+
+<nav class="navigation" data-ice="nav"><div>
+  <ul>
+    
+  <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/ccwc-videoplayer.es6~CCWCVideoPlayer.html">CCWCVideoPlayer</a></span></span></li>
+</ul>
+</div>
+</nav>
+
+<div class="content" data-ice="content"><h1 data-ice="title">src/ccwc-videoplayer.es6</h1>
+<pre class="source-code line-number raw-source-code"><code class="prettyprint linenums" data-ice="content">/**
+ * @class CCWVideoPlayer
  */
-class CCWCVideo extends HTMLElement {
+class CCWCVideoPlayer extends HTMLElement {
 
     /**
      * initialize default class properties
@@ -12,16 +51,8 @@ class CCWCVideo extends HTMLElement {
         /**
          * video source file or stream
          * @type {string}
-         * @private
          */
-        this._source = '';
-
-        /**
-         * use camera
-         * @type {boolean}
-         * @private
-         */
-        this._useCamera = false;
+        this._source = &apos;&apos;;
 
         /**
          * is component ready
@@ -52,7 +83,7 @@ class CCWCVideo extends HTMLElement {
          * @type {string}
          * @default imagedataurl
          */
-        this.frameDataMode = 'imagedataurl';
+        this.frameDataMode = &apos;imagedataurl&apos;;
 
         /**
          * determines whether to use the canvas element for display instead of the video element
@@ -75,11 +106,6 @@ class CCWCVideo extends HTMLElement {
          */
         this.videoElement = null;
 
-        /**
-         * camera sources list
-         * @type {Array}
-         */
-        this.cameraSources = [];
 
         /**
          * canvas element
@@ -163,10 +189,10 @@ class CCWCVideo extends HTMLElement {
         this.height = this.offsetHeight;
 
         // set video/canvas to component size
-        this.videoElement.setAttribute('width', this.width);
-        this.videoElement.setAttribute('height', this.height);
-        this.canvasElement.setAttribute('width', this.width);
-        this.canvasElement.setAttribute('height', this.height);
+        this.videoElement.setAttribute(&apos;width&apos;, this.width);
+        this.videoElement.setAttribute(&apos;height&apos;, this.height);
+        this.canvasElement.setAttribute(&apos;width&apos;, this.width);
+        this.canvasElement.setAttribute(&apos;height&apos;, this.height);
 
         // calculate aspect ratio
         this.aspectRatio = this.videoElement.videoWidth / this.videoElement.videoHeight;
@@ -175,11 +201,11 @@ class CCWCVideo extends HTMLElement {
 
         // calculate letterbox borders
         var componentAspectRatio = this.width/this.height;
-        if (componentAspectRatio < this.aspectRatio) {
+        if (componentAspectRatio &lt; this.aspectRatio) {
             this.videoScaledHeight = this.width / this.aspectRatio;
             this.letterBoxTop = this.height/2 - this.videoScaledHeight/2;
             this.letterBoxLeft = 0;
-        } else if (componentAspectRatio > this.aspectRatio) {
+        } else if (componentAspectRatio &gt; this.aspectRatio) {
             this.videoScaledWidth = this.height * this.aspectRatio;
             this.letterBoxLeft = this.width/2 - this.videoScaledWidth/2;
             this.letterBoxTop = 0;
@@ -192,29 +218,18 @@ class CCWCVideo extends HTMLElement {
 
     /**
      * set video source
-     * @param {string | int} src video source uri
+     * @param {string} src video source uri
      */
     set source(src) {
-        if (!src) { return; }
-        this._source = src;
-
-        if (this._useCamera && this.cameraSources.length === 0) {
-            this.refreshCameraSources();
-            return;
-        }
-
-        if (this._useCamera || parseInt(src) === src) {
-            this.setCameraSourceByIndex(src);
-        } else if (this._useCamera) {
-            this.setCameraSourceByID(src);
-        } else {
+        if (src != &apos;&apos;) {
+            this._source = src;
             this.videoElement.src = src;
         }
     };
 
     /**
      * get video source
-     * @return {string | int} src video source uri
+     * @return {string} src video source uri
      */
     get source() {
         return this._source;
@@ -259,86 +274,23 @@ class CCWCVideo extends HTMLElement {
         }
 
         switch (mode) {
-            case 'binary':
-                var base64Data = data.replace('data:image/png;base64', '');
-                var binaryData = new Buffer(base64Data, 'base64');
+            case &apos;binary&apos;:
+                var base64Data = data.replace(&apos;data:image/png;base64&apos;, &apos;&apos;);
+                var binaryData = new Buffer(base64Data, &apos;base64&apos;);
                 data = binaryData;
                 break;
 
-            case 'imagedataurl':
-                data = this.canvasElement.toDataURL('image/png');
+            case &apos;imagedataurl&apos;:
+                data = this.canvasElement.toDataURL(&apos;image/png&apos;);
                 break;
 
-            case 'imagedata':
+            case &apos;imagedata&apos;:
                 data = this.canvasctx.getImageData(this.letterBoxLeft, this.letterBoxTop, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
                 break;
         }
+
+        // todo: non-binary mode for assigning data to image elements for example
         return data;
-    };
-
-    /**
-     * set camera source by index
-     * @param {int} index
-     */
-    setCameraSourceByIndex(index) {
-        if (!index || index >= this.cameraSources.length) { console.log("Video Source Index does not exist"); return; }
-        this.setCameraSourceByID(this.cameraSources[index].id);
-    };
-
-    /**
-     * set camera source by id
-     * @param {String} id
-     */
-    setCameraSourceByID(id) {
-        navigator.webkitGetUserMedia(
-            { video: {optional: [{sourceId: id }]}},
-            this.onCameraStream.bind(this),
-            function() {}
-        );
-    };
-
-    /**
-     * refresh camera sources
-     */
-    refreshCameraSources() {
-        this.cameraSources = [];
-        MediaStreamTrack.getSources( sources => {
-            this.onCameraSources(sources);
-        });
-    };
-
-    /**
-     * on camera video source stream
-     * @param stream
-     * @private
-     */
-    onCameraStream(stream) {
-        this.videoElement.src = URL.createObjectURL(stream);
-        this.videoElement.onloadedmetadata = e => {
-            this.onResize();
-        };
-    };
-
-    /**
-     * on camera sources callback
-     * @param {array} sources found
-     * @private
-     */
-    onCameraSources(sources) {
-        var storageIndex = 0;
-        for (var i=0; i < sources.length; i++) {
-            if (sources[i].kind == 'video') {
-                var label = sources[i].label;
-                if (label == "") { label = "video " + Number(storageIndex+1); }
-                sources[storageIndex] = sources[i].id;
-                this.cameraSources.push({ label: label, id: sources[i].id });
-                storageIndex++;
-            }
-        }
-
-        var event = new CustomEvent('camerasfound', { detail: { cameras: this.cameraSources } });
-        this.dispatchEvent(event);
-        if (this._source) { this.source = this._source; }
     };
 
     /**
@@ -346,12 +298,12 @@ class CCWCVideo extends HTMLElement {
      * @param {String} path file path
      */
     saveCurrentFrameToFile(path) {
-        var fs = require('fs');
+        var fs = require(&apos;fs&apos;);
         if (!fs) {
-            throw new Error('This method uses Node.js functionality, and you are not running within Node.js');
+            throw new Error(&apos;This method uses Node.js functionality, and you are not running within Node.js&apos;);
         }
-        var data = this.getCurrentFrameData().toString('binary');
-        fs.writeFileSync(path, data, 'binary');
+        var data = this.getCurrentFrameData().toString(&apos;binary&apos;);
+        fs.writeFileSync(path, data, &apos;binary&apos;);
     };
 
     /**
@@ -359,37 +311,35 @@ class CCWCVideo extends HTMLElement {
      * @private
      */
     parseAttributes() {
-        if (this.hasAttribute('useCamera')) {
-            this._useCamera = true;
-        } else {
-            this._useCamera = false;
+        if (this.hasAttribute(&apos;src&apos;)) {
+            this._source = this.getAttribute(&apos;src&apos;);
         }
 
-        if (this.hasAttribute('src')) {
-            this._source = this.getAttribute('src');
-        }
-
-        if (this.hasAttribute('useCanvasForDisplay')) {
+        if (this.hasAttribute(&apos;useCanvasForDisplay&apos;)) {
             this.useCanvasForDisplay = true;
         } else {
             this.useCanvasForDisplay = false;
         }
 
-        if (this.hasAttribute('frameDataMode')) {
-            this.frameDataMode = this.getAttribute('frameDataMode');
+        if (this.hasAttribute(&apos;frameDataMode&apos;)) {
+            this.frameDataMode = this.getAttribute(&apos;frameDataMode&apos;);
         }
 
-        if (this.hasAttribute('canvasRefreshInterval')) {
-            this.canvasRefreshInterval = parseInt(this.getAttribute('canvasRefreshInterval'));
+        if (this.hasAttribute(&apos;canvasRefreshInterval&apos;)) {
+            this.canvasRefreshInterval = parseInt(this.getAttribute(&apos;canvasRefreshInterval&apos;));
         }
 
-        if (this.hasAttribute('canvasScale')) {
-            this.canvasScale = parseFloat(this.getAttribute('canvasScale'));
+        if (this.hasAttribute(&apos;canvasScale&apos;)) {
+            this.canvasScale = parseFloat(this.getAttribute(&apos;canvasScale&apos;));
         }
 
-        if (this.canvasRefreshInterval === 0 && this.useCanvasForDisplay) {
-            console.log('Warning: Using canvas for display, but the canvas refresh interval is not set or set to 0. Setting refresh interval to 250ms.');
+        if (this.canvasRefreshInterval === 0 &amp;&amp; this.useCanvasForDisplay) {
+            console.log(&apos;Warning: Using canvas for display, but the canvas refresh interval is not set or set to 0. Setting refresh interval to 250ms.&apos;);
             this.canvasRefreshInterval = 250;
+        }
+
+        if (this.hasAttribute(&apos;onframeupdate&apos;)) {
+            this._source = this.getAttribute(&apos;src&apos;);
         }
     };
 
@@ -407,31 +357,31 @@ class CCWCVideo extends HTMLElement {
      * @private
      */
     attachedCallback() {
-        let template = this.owner.querySelector("template");
+        let template = this.owner.querySelector(&quot;template&quot;);
         let clone = template.content.cloneNode(true);
         this.root = this.createShadowRoot();
         this.root.appendChild(clone);
 
-        window.addEventListener('HTMLImportsLoaded', e => {
+        window.addEventListener(&apos;HTMLImportsLoaded&apos;, e =&gt; {
             this.onResize();
         });
 
-        this.videoElement = this.root.querySelector('#vid');
-        this.canvasElement = this.root.querySelector('#canvas');
-        this.videoElement.onloadedmetadata = e => {
+        this.videoElement = this.root.querySelector(&apos;#vid&apos;);
+        this.canvasElement = this.root.querySelector(&apos;#canvas&apos;);
+        this.videoElement.onloadedmetadata = e =&gt; {
             this.onResize();
         };
         this.source = this._source;
         if (this.useCanvasForDisplay) {
-            this.videoElement.style.display = 'none';
+            this.videoElement.style.display = &apos;none&apos;;
         } else {
-            this.canvasElement.style.display = 'none';
+            this.canvasElement.style.display = &apos;none&apos;;
         }
 
-        if (this.canvasRefreshInterval > 0) {
-            this.tick = setInterval(() => {
+        if (this.canvasRefreshInterval &gt; 0) {
+            this.tick = setInterval(() =&gt; {
                 if (this.width === 0 || this.height === 0) { return; }
-                var event = new CustomEvent('frameupdate', { detail: {
+                var event = new CustomEvent(&apos;frameupdate&apos;, { detail: {
                     framedata: this.getCurrentFrameData(),
                     canvascontext: this.canvasctx,
                     videoWidth: this.videoScaledWidth * this.canvasScale,
@@ -444,10 +394,10 @@ class CCWCVideo extends HTMLElement {
                 this.dispatchEvent(event);
             }, this.canvasRefreshInterval);
         }
-        this.canvasctx = this.canvasElement.getContext('2d');
+        this.canvasctx = this.canvasElement.getContext(&apos;2d&apos;);
 
         this.isReady = true;
-        var event = new CustomEvent('ready');
+        var event = new CustomEvent(&apos;ready&apos;);
         this.dispatchEvent(event);
     };
 
@@ -469,5 +419,21 @@ class CCWCVideo extends HTMLElement {
 
 }
 
-CCWCVideo.prototype.owner = (document._currentScript || document.currentScript).ownerDocument;
-document.registerElement('ccwc-video', CCWCVideo);
+CCWCVideoPlayer.prototype.owner = (document._currentScript || document.currentScript).ownerDocument;
+document.registerElement(&apos;ccwc-videoplayer&apos;, CCWCVideoPlayer);</code></pre>
+
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.4.3)</span></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl">
+  <title data-ice="title">API Document</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  
+  
+  <script src="script/manual.js"></script>
+</head>
+<body class="layout-container" data-ice="rootContainer">
+
+<header>
+  <a href="./">Home</a>
+  
+  <a href="identifiers.html">Reference</a>
+  <a href="source.html">Source</a>
+  
+  
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+</header>
+
+<nav class="navigation" data-ice="nav"><div>
+  <ul>
+    
+  <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/ccwc-video.es6~CCWCVideo.html">CCWCVideo</a></span></span></li>
+</ul>
+</div>
+</nav>
+
+<div class="content" data-ice="content"><div data-ice="index" class="github-markdown"><h1 id="ccwc-video">CCWC-Video</h1>
+<p>CCWCVideo plays back video or web camera feeds. Playback is offered on an internal canvas as well. Consumers can draw directly into this canvas, get a copy
+of the framedata or even take the canvas context for use on another canvas</p>
+<h2 id="element-attributes">Element attributes</h2>
+<p>&lt;ccwc-video</p>
+<ul>
+<li><p><strong>useCamera</strong> <em>(boolean)</em> If present, the component will use your webcam. You must give it an index or ID source via the src attribute or through the API</p>
+</li>
+<li><p><strong>src</strong> <em>(string or integer)</em> If present, this will set the source video of your component. If <strong>useCamera</strong> is present, this source can either be an integer or ID to represent your webcam</p>
+</li>
+<li><p><strong>useCanvasForDisplay</strong> <em>(boolean)</em> If present, this component will hide the video, and instead show the internal canvas that draws the frames from the vidoe</p>
+</li>
+<li><p><strong>frameDataMode</strong> <em>(string: &quot;binary&quot;, &quot;imagedataurl&quot; (default), or &quot;imagedata&quot;</em> Setting for the data in the event that occurs when the frame is redrawn.</p>
+<ul>
+<li><p><strong>binary</strong> binary image output</p>
+</li>
+<li><p><strong>imagedataurl</strong> good for setting the source of an img tag or similar</p>
+</li>
+<li><p><strong>imagedata</strong> good for applying to another canvas element</p>
+</li>
+</ul>
+</li>
+<li><p><strong>canvasRefreshInterval</strong> (integer) How often, in milliseconds, the internal canvas is refreshed. Default is 250ms which is a bit choppy To see results, be sure to use with &quot;useCanvasForDisplay&quot;. Alternately, use this to drive regular update events</p>
+</li>
+<li><p><strong>canvasScale</strong> (float/number) Scaling of the canvas and scale of image data from the frame update events. 0.5, for example will show content at half size
+&gt;</p>
+</li>
+</ul>
+<p>&lt;/ccwc-video&gt;</p>
+<h2 id="element-events">Element Events</h2>
+<p>ccwcvideo.addEventListener(</p>
+<ul>
+<li><p><strong>ready</strong> the component is ready. No event detail is provided</p>
+</li>
+<li><p><strong>camerasfound</strong> the component has found webcams. For a camera list, use event.detail.cameras</p>
+</li>
+<li><p><strong>frameupdate</strong> the internal canvas has been updated, a new video frame is available. Event details provided are:</p>
+<ul>
+<li><p><em>event.detail.framedata</em> image data for the video frame</p>
+</li>
+<li><p><em>event.detail.canvascontext</em> the 2D context of the internal canvas</p>
+</li>
+<li><p><em>event.detail.videoWidth</em> the real width of the playing video</p>
+</li>
+<li><p><em>event.detail.videoHeight</em> the real height of the playing video</p>
+</li>
+<li><p><em>event.detail.videoLeft</em> the left position of the letterboxed video</p>
+</li>
+<li><p><em>event.detail.videoTop</em> the top position of the letterboxed video</p>
+</li>
+<li><p><em>event.detail.width</em> the width of the component, including letterbox</p>
+</li>
+<li><p><em>event.detail.height</em> the height of the component, including letterbox
+)</p>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="examples-api-documentation">Examples &amp; API Documentation</h2>
+<p><a href="docs">API Docs</a></p>
+<p><a href="/examples/camera-copy-to-canvas.html">Copy Camera Image to a Canvas</a></p>
+<p><a href="/examples/camera-find-cameras.html">Find and list Web Cameras</a></p>
+<p><a href="/examples/camera-render-to-internal-canvas.html">Render Camera to Internal Canvas</a></p>
+<p><a href="/examples/camera-scale-and-copy-to-canvas.html">Scale Camera Image and Copy to Canvas</a></p>
+<p><a href="/examples/camera-scale-canvas.html">Scale Camera Canvas</a></p>
+<p><a href="/examples/camera-simple-playback.html">Playback for Camera</a></p>
+<p><a href="/examples/camera-steal-internal-canvas.html">Steal Internal Canvas Context and Render Camera Frame to another Canvas</a></p>
+<p><a href="/examples/video-copy-to-canvas.html">Copy Video Image to a Canvas</a></p>
+<p><a href="/examples/video-render-to-internal-canvas.html">Render Video to Internal Canvas</a></p>
+<p><a href="/examples/video-scale-and-copy-to-canvas.html">Scale Video Image and Copy to Canvas</a></p>
+<p><a href="/examples/video-scale-canvas.html">Scale Video Canvas</a></p>
+<p><a href="/examples/video-simple-playback.html">Playback for Video</a></p>
+<p><a href="/examples/video-steal-internal-canvas.html">Steal Internal Canvas Context and Render Video Frame to another Canvas</a></p>
+</div>
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.4.3)</span></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>
