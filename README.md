@@ -78,6 +78,10 @@ Examples & API Documentation
 
 [Steal Internal Canvas Context and Render Camera Frame to another Canvas](/examples/camera-steal-internal-canvas.html)
 
+[Apply Chained Filter on Camera](/examples/camera-apply-chained-filter.html)
+
+[Apply Filter on Camera](/examples/camera-apply-filter.html)
+
 
 [Copy Video Image to a Canvas](/examples/video-copy-to-canvas.html)
 
@@ -90,5 +94,9 @@ Examples & API Documentation
 [Playback for Video](/examples/video-simple-playback.html)
 
 [Steal Internal Canvas Context and Render Video Frame to another Canvas](/examples/video-steal-internal-canvas.html)
+
+[Apply Chained Filter on Video](/examples/video-apply-chained-filter.html)
+
+[Apply Filter on Video](/examples/video-apply-filter.html)
 
 

@@ -6,7 +6,7 @@
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
-var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; desc = parent = undefined; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
@@ -72,7 +72,7 @@ var CCWCVideo = (function (_HTMLElement) {
              * @type {string}
              * @default imagedataurl
              */
-            this.frameDataMode = 'imagedataurl';
+            this.frameDataMode = 'none';
 
             /**
              * determines whether to use the canvas element for display instead of the video element
@@ -80,6 +80,13 @@ var CCWCVideo = (function (_HTMLElement) {
              * @default false
              */
             this.useCanvasForDisplay = false;
+
+            /**
+             * canvas filter function (manipulate pixels)
+             * @type {method}
+             * @default 0 ms
+             */
+            this.canvasFilter = null;
 
             /**
              * refresh interval when using the canvas for display
@@ -230,6 +237,12 @@ var CCWCVideo = (function (_HTMLElement) {
                 this.canvasctx.drawImage(this.videoElement, this.letterBoxLeft, this.letterBoxTop, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
             }
 
+            var filtered;
+            if (this.canvasFilter) {
+                filtered = this.canvasctx.getImageData(this.letterBoxLeft, this.letterBoxTop, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+                this.canvasctx.putImageData(this.canvasFilter(filtered), this.letterBoxLeft, this.letterBoxTop, 0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+            }
+
             switch (mode) {
                 case 'binary':
                     var base64Data = data.replace('data:image/png;base64', '');
@@ -242,9 +255,15 @@ var CCWCVideo = (function (_HTMLElement) {
                     break;
 
                 case 'imagedata':
-                    data = this.canvasctx.getImageData(this.letterBoxLeft, this.letterBoxTop, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+                    if (!filtered) {
+                        data = this.canvasctx.getImageData(this.letterBoxLeft, this.letterBoxTop, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+                    } else {
+                        // save some CPU cycles if we already did this
+                        data = filtered;
+                    }
                     break;
             }
+
             return data;
         }
     }, {
@@ -528,5 +547,4 @@ var CCWCVideo = (function (_HTMLElement) {
 
 CCWCVideo.prototype.owner = (document._currentScript || document.currentScript).ownerDocument;
 document.registerElement('ccwc-video', CCWCVideo);
-
 //# sourceMappingURL=ccwc-video.js.map

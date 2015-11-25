@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>Demo: Copy to Canvas</title>
+    <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
+    <script src="../node_modules/ccwc-image-utils/imgutils.js"></script>
+    <link rel="import" href="../ccwc-video.html">
+
+    <style>
+        ccwc-video {
+            width: 250px;
+            height: 250px;
+        }
+    </style>
+</head>
+
+<body>
+<h2>Demo: Copy to Canvas</h2>
+<p>
+    Use the frame data event to trigger drawing to another canvas
+</p>
+<ccwc-video useCamera useCanvasForDisplay canvasRefreshInterval="100" src="1"></ccwc-video>
+<canvas></canvas>
+</body>
+
+<script>
+    var ctx = document.querySelector('canvas').getContext('2d');
+   // document.querySelector('ccwc-video').canvasFilter = ccwc.ImageUtils.toGrayscale;
+    document.querySelector('ccwc-video').canvasFilter = ccwc.ImageUtils.saturate;
+</script>
+</html>

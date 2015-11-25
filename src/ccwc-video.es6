@@ -52,7 +52,7 @@ class CCWCVideo extends HTMLElement {
          * @type {string}
          * @default imagedataurl
          */
-        this.frameDataMode = 'imagedataurl';
+        this.frameDataMode = 'none';
 
         /**
          * determines whether to use the canvas element for display instead of the video element
@@ -60,6 +60,13 @@ class CCWCVideo extends HTMLElement {
          * @default false
          */
         this.useCanvasForDisplay = false;
+
+        /**
+         * canvas filter function (manipulate pixels)
+         * @type {method}
+         * @default 0 ms
+         */
+        this.canvasFilter = null;
 
         /**
          * refresh interval when using the canvas for display
@@ -258,6 +265,12 @@ class CCWCVideo extends HTMLElement {
                 this.videoScaledHeight * this.canvasScale);
         }
 
+        var filtered;
+        if (this.canvasFilter) {
+            filtered = this.canvasctx.getImageData(this.letterBoxLeft, this.letterBoxTop, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+            this.canvasctx.putImageData(this.canvasFilter(filtered), this.letterBoxLeft, this.letterBoxTop, 0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale );
+        }
+
         switch (mode) {
             case 'binary':
                 var base64Data = data.replace('data:image/png;base64', '');
@@ -270,9 +283,15 @@ class CCWCVideo extends HTMLElement {
                 break;
 
             case 'imagedata':
-                data = this.canvasctx.getImageData(this.letterBoxLeft, this.letterBoxTop, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+                if (!filtered) {
+                    data = this.canvasctx.getImageData(this.letterBoxLeft, this.letterBoxTop, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+                } else {
+                    // save some CPU cycles if we already did this
+                    data = filtered;
+                }
                 break;
         }
+
         return data;
     };
 
