@@ -547,4 +547,5 @@ var CCWCVideo = (function (_HTMLElement) {
 
 CCWCVideo.prototype.owner = (document._currentScript || document.currentScript).ownerDocument;
 document.registerElement('ccwc-video', CCWCVideo);
+
 //# sourceMappingURL=ccwc-video.js.map
