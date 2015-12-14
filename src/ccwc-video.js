@@ -181,6 +181,23 @@ var CCWCVideo = (function (_HTMLElement) {
         }
 
         /**
+         * on video playing handler
+         */
+    }, {
+        key: 'onPlaying',
+        value: function onPlaying() {
+            var event = new CustomEvent('videoplaying', {
+                detail: {
+                    source: this.source,
+                    videoElement: this.videoElement,
+                    videoWidth: this.videoScaledWidth,
+                    videoHeight: this.videoScaledHeight,
+                    width: this.width,
+                    height: this.height } });
+            this.dispatchEvent(event);
+        }
+
+        /**
          * update canvas dimensions when resized
          * @private
          */
@@ -434,10 +451,14 @@ var CCWCVideo = (function (_HTMLElement) {
             });
 
             this.videoElement = this.root.querySelector('#vid');
+            this.videoElement.addEventListener('play', function (e) {
+                return _this3.onPlaying(e);
+            });
             this.canvasElement = this.root.querySelector('#canvas');
             this.videoElement.onloadedmetadata = function (e) {
                 _this3.onResize();
             };
+
             this.source = this._source;
             if (this.useCanvasForDisplay) {
                 this.videoElement.style.display = 'none';
@@ -547,5 +568,4 @@ var CCWCVideo = (function (_HTMLElement) {
 
 CCWCVideo.prototype.owner = (document._currentScript || document.currentScript).ownerDocument;
 document.registerElement('ccwc-video', CCWCVideo);
-
 //# sourceMappingURL=ccwc-video.js.map

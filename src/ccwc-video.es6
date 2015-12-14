@@ -161,6 +161,21 @@ class CCWCVideo extends HTMLElement {
     }
 
     /**
+     * on video playing handler
+     */
+    onPlaying() {
+        var event = new CustomEvent('videoplaying', {
+            detail: {
+                source: this.source,
+                videoElement: this.videoElement,
+                videoWidth: this.videoScaledWidth,
+                videoHeight: this.videoScaledHeight,
+                width: this.width,
+                height: this.height } });
+        this.dispatchEvent(event);
+    }
+
+    /**
      * update canvas dimensions when resized
      * @private
      */
@@ -436,10 +451,12 @@ class CCWCVideo extends HTMLElement {
         });
 
         this.videoElement = this.root.querySelector('#vid');
+        this.videoElement.addEventListener('play', e => this.onPlaying(e));
         this.canvasElement = this.root.querySelector('#canvas');
         this.videoElement.onloadedmetadata = e => {
             this.onResize();
         };
+
         this.source = this._source;
         if (this.useCanvasForDisplay) {
             this.videoElement.style.display = 'none';

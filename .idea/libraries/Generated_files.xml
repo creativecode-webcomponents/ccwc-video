@@ -1,11 +1,5 @@
 <component name="libraryTable">
   <library name="Generated files" type="javaScript">
-    <properties>
-      <sourceFilesUrls>
-        <item url="file://$PROJECT_DIR$/test-compiled.js" />
-        <item url="file://$PROJECT_DIR$/js/test-compiled.js" />
-      </sourceFilesUrls>
-    </properties>
     <CLASSES>
       <root url="file://$PROJECT_DIR$/js/ccwc-videoplayer-compiled.js" />
       <root url="file://$PROJECT_DIR$/js/ccwc-videoplayer-compiled.js" />
