@@ -2,9 +2,9 @@
 <html>
     <head>
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
-        <title>Demo: Copy to Canvas</title>
+        <title>Demo: Scale and Copy to Canvas</title>
         <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
-        <link rel="import" href="../ccwc-video.html">
+        <link rel="import" href="../ccwc-glvideo.html">
 
         <style>
             ccwc-video {
@@ -15,15 +15,16 @@
     </head>
 
     <body>
-        <h2>Demo: Copy to Canvas (with live camera)</h2>
+        <h2>Demo: Scale WebGL Video and Copy to 2D Canvas</h2>
         <p>
-            Use the frame data event to trigger drawing to another canvas
+            Use the frame data event from a WebGL canvas to trigger drawing to another 2D canvas, scaling the output
         </p>
         <ccwc-video
-                src="0"
-                useCamera
-                canvasRefreshInterval="100"
-                frameDataMode="imagedata">
+                src="SampleVideo_360x240_1mb.mp4"
+                canvasScale=".5"
+                usewebgl
+                frameDataMode="imagedata"
+                canvasRefreshInterval="100">
         </ccwc-video>
 
         <canvas></canvas>

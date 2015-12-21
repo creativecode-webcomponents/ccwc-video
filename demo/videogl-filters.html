@@ -2,9 +2,9 @@
 <html>
     <head>
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
-        <title>Demo: Scale Canvas</title>
+        <title>Demo: Copy to Canvas</title>
         <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
-        <link rel="import" href="../ccwc-video.html">
+        <link rel="import" href="../ccwc-glvideo.html">
 
         <style>
             ccwc-video {
@@ -15,15 +15,14 @@
     </head>
 
     <body>
-        <h2>Demo: Scale canvas</h2>
+        <h2>Demo: Apply WebGL Filter</h2>
         <p>
-            Use the internal canvas for display, but also scale. Kinda looks bad and useless, but scaling the canvas could be a useful feature elsewhere
+            Apply WebGL Filter - possible glfilters are "sepia", "greyscale", "sobel_edge_detection", and "freichen_edge_detection"
         </p>
         <ccwc-video
                 src="SampleVideo_360x240_1mb.mp4"
-                canvasScale=".5"
                 useCanvasForDisplay
-                canvasRefreshInterval="100">
+                canvasRefreshInterval="100" glFilter="sobel_edge_detection" usewebgl>
         </ccwc-video>
 
         <canvas></canvas>

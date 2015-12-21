@@ -17,6 +17,13 @@ class CCWCVideo extends HTMLElement {
         this._source = '';
 
         /**
+         * use webgl
+         * @type {boolean}
+         * @private
+         */
+        this._useWebGL = false;
+
+        /**
          * use camera
          * @type {boolean}
          * @private
@@ -28,6 +35,12 @@ class CCWCVideo extends HTMLElement {
          * @type {boolean}
          */
         this.isReady = false;
+
+        /**
+         * is video playing
+         * @type {boolean}
+         */
+        this.isPlaying = false;
 
         /**
          * width of scaled video
@@ -67,6 +80,22 @@ class CCWCVideo extends HTMLElement {
          * @default 0 ms
          */
         this.canvasFilter = null;
+
+        /**
+         * WebGL filter name
+         * @type {string}
+         * @default passthrough
+         */
+        this._glFilter = 'passthrough';
+
+        /**
+         * WebGL shaders object for filter lookup
+         * @type {Object}
+         * @default passthrough
+         */
+        if (ccwc && ccwc.WebGLFilter && ccwc.WebGLFilter.shaders) {
+            this._glFilterLibrary = this._glFilterLibrary ? this._glFilterLibrary : ccwc.WebGLFilter.shaders;
+        }
 
         /**
          * refresh interval when using the canvas for display
@@ -117,6 +146,13 @@ class CCWCVideo extends HTMLElement {
         this.canvasctx = null;
 
         /**
+         * has the canvas context been overridden from the outside?
+         * @type {boolean}
+         * @private
+         */
+        this._canvasOverride = false;
+
+        /**
          * width of component
          * @type {int}
          * @default 0
@@ -164,6 +200,7 @@ class CCWCVideo extends HTMLElement {
      * on video playing handler
      */
     onPlaying() {
+        this.isPlaying = true;
         var event = new CustomEvent('videoplaying', {
             detail: {
                 source: this.source,
@@ -173,6 +210,19 @@ class CCWCVideo extends HTMLElement {
                 width: this.width,
                 height: this.height } });
         this.dispatchEvent(event);
+
+        this.canvasElement.width = this.videoScaledWidth * this.canvasScale;
+        this.canvasElement.height = this.videoScaledHeight * this.canvasScale;
+
+        var ctxstring = this._useWebGL ? 'webgl' : '2d';
+        if (!this._canvasOverride) {
+            this.canvasctx = this.canvasElement.getContext(ctxstring);
+        }
+
+        if (this._useWebGL) {
+            var filter = ccwc.WebGLFilter.createFilterFromName(this._glFilter, this._glFilterLibrary);
+            this.glProps = ccwc.WebGLFilter.createRenderProps(this.canvasctx, filter, this.videoElement, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+        }
     }
 
     /**
@@ -183,12 +233,6 @@ class CCWCVideo extends HTMLElement {
         // set size properties based on component height
         this.width = this.offsetWidth;
         this.height = this.offsetHeight;
-
-        // set video/canvas to component size
-        this.videoElement.setAttribute('width', this.width);
-        this.videoElement.setAttribute('height', this.height);
-        this.canvasElement.setAttribute('width', this.width);
-        this.canvasElement.setAttribute('height', this.height);
 
         // calculate aspect ratio
         this.aspectRatio = this.videoElement.videoWidth / this.videoElement.videoHeight;
@@ -209,6 +253,16 @@ class CCWCVideo extends HTMLElement {
             this.letterBoxTop = 0;
             this.letterBoxLeft = 0;
         }
+
+        // set video/canvas to component size
+        this.videoElement.setAttribute('width', this.videoScaledWidth);
+        this.videoElement.setAttribute('height', this.videoScaledHeight);
+        this.canvasElement.setAttribute('width', this.videoScaledWidth);
+        this.canvasElement.setAttribute('height', this.videoScaledHeight);
+        this.videoElement.style.top = this.letterBoxTop + 'px';
+        this.videoElement.style.left = this.letterBoxLeft + 'px';
+        this.canvasElement.style.top = this.letterBoxTop + 'px';
+        this.canvasElement.style.left = this.letterBoxLeft + 'px';
     };
 
 
@@ -235,6 +289,14 @@ class CCWCVideo extends HTMLElement {
     };
 
     /**
+     * set filter dictionary for WebGL
+     * @param filters
+     */
+    set glFilterLibrary(filters) {
+        this._glFilterLibrary = filters;
+    }
+
+    /**
      * get video source
      * @return {string | int} src video source uri
      */
@@ -256,6 +318,7 @@ class CCWCVideo extends HTMLElement {
      */
     set canvasContext(context) {
         this.canvasctx = context;
+        this._canvasOverride = true;
     };
 
     /**
@@ -265,25 +328,25 @@ class CCWCVideo extends HTMLElement {
      * @return {object} image data
      */
     getCurrentFrameData(mode, noredraw) {
-        var data;
+        var data, filtered;
         if (!mode) {
             mode = this.frameDataMode;
         }
         if (!noredraw) {
-            this.canvasctx.canvas.width = this.width * this.canvasScale;
-            this.canvasctx.canvas.height = this.height * this.canvasScale;
-            this.canvasctx.drawImage(
-                this.videoElement,
-                this.letterBoxLeft,
-                this.letterBoxTop,
-                this.videoScaledWidth * this.canvasScale,
-                this.videoScaledHeight * this.canvasScale);
-        }
+            if (this._useWebGL) {
+                ccwc.WebGLFilter.render(this.glProps);
+            } else {
+                this.canvasctx.drawImage(
+                    this.videoElement, 0, 0,
+                    this.videoScaledWidth * this.canvasScale,
+                    this.videoScaledHeight * this.canvasScale);
 
-        var filtered;
-        if (this.canvasFilter) {
-            filtered = this.canvasctx.getImageData(this.letterBoxLeft, this.letterBoxTop, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
-            this.canvasctx.putImageData(this.canvasFilter(filtered), this.letterBoxLeft, this.letterBoxTop, 0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale );
+                if (this.canvasFilter) {
+                    filtered = this.canvasctx.getImageData(0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+                    this.canvasctx.putImageData(this.canvasFilter(filtered), 0, 0, 0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale );
+                }
+            }
+
         }
 
         switch (mode) {
@@ -299,7 +362,11 @@ class CCWCVideo extends HTMLElement {
 
             case 'imagedata':
                 if (!filtered) {
-                    data = this.canvasctx.getImageData(this.letterBoxLeft, this.letterBoxTop, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+                    if (this._useWebGL) {
+                        data = ccwc.WebGLFilter.getCanvasPixels(this.glProps);
+                    } else {
+                        data = this.canvasctx.getImageData(0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+                    }
                 } else {
                     // save some CPU cycles if we already did this
                     data = filtered;
@@ -421,6 +488,14 @@ class CCWCVideo extends HTMLElement {
             this.canvasScale = parseFloat(this.getAttribute('canvasScale'));
         }
 
+        if (this.hasAttribute('usewebgl')) {
+            this._useWebGL = true;
+        }
+
+        if (this.hasAttribute('glfilter')) {
+            this._glFilter = this.getAttribute('glFilter');
+        }
+
         if (this.canvasRefreshInterval === 0 && this.useCanvasForDisplay) {
             console.log('Warning: Using canvas for display, but the canvas refresh interval is not set or set to 0. Setting refresh interval to 250ms.');
             this.canvasRefreshInterval = 250;
@@ -467,6 +542,7 @@ class CCWCVideo extends HTMLElement {
         if (this.canvasRefreshInterval > 0) {
             this.tick = setInterval(() => {
                 if (this.width === 0 || this.height === 0) { return; }
+                if (!this.isPlaying) { return; }
                 var event = new CustomEvent('frameupdate', { detail: {
                     framedata: this.getCurrentFrameData(),
                     canvascontext: this.canvasctx,
@@ -480,7 +556,6 @@ class CCWCVideo extends HTMLElement {
                 this.dispatchEvent(event);
             }, this.canvasRefreshInterval);
         }
-        this.canvasctx = this.canvasElement.getContext('2d');
 
         this.isReady = true;
         var event = new CustomEvent('ready');

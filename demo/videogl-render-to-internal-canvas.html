@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+        <title>Demo: Play a video using internal WebGL canvas</title>
+        <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
+        <link rel="import" href="../ccwc-glvideo.html">
+
+        <style>
+            ccwc-video {
+                width: 250px;
+                height: 250px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <h2>Demo: Play a video using internal WebGL canvas</h2>
+        <p>
+            Simply play a video using the GL canvas and a passthrough filter. The canvas refresh interval is super high to demonstrate its not video. Actually though, you can crank this super low like 10ms and it seems to perform fine
+        </p>
+        <ccwc-video usewebgl
+                    canvasRefreshInterval="250"
+                    useCanvasForDisplay
+                    src="SampleVideo_360x240_1mb.mp4">
+
+        </ccwc-video>
+    </body>
+</html>

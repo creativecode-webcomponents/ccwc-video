@@ -2,9 +2,9 @@
 <html>
     <head>
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
-        <title>Demo: Scale Canvas</title>
+        <title>Demo: Scale WebGL Canvas</title>
         <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
-        <link rel="import" href="../ccwc-video.html">
+        <link rel="import" href="../ccwc-glvideo.html">
 
         <style>
             ccwc-video {
@@ -15,13 +15,14 @@
     </head>
 
     <body>
-        <h2>Demo: Scale canvas</h2>
+        <h2>Demo: Scale WebGL canvas</h2>
         <p>
             Use the internal canvas for display, but also scale. Kinda looks bad and useless, but scaling the canvas could be a useful feature elsewhere
         </p>
         <ccwc-video
                 src="SampleVideo_360x240_1mb.mp4"
                 canvasScale=".5"
+                usewebgl
                 useCanvasForDisplay
                 canvasRefreshInterval="100">
         </ccwc-video>

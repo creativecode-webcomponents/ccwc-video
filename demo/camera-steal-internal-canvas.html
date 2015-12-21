@@ -20,7 +20,7 @@
             Instead of multiple canvas drawing, steal the video player's internal canvas context for ourselves outside of the component. Be sure you aren't using "useCanvasForDisplay" or the video element will be hidden
         </p>
         <ccwc-video
-                src="1" useCamera
+                src="0" useCamera
                 canvasRefreshInterval="100"
                 frameDataMode="imagedata">
         </ccwc-video>
@@ -32,9 +32,15 @@
         var mycanvas = document.querySelector('canvas');
         var videoplayer = document.querySelector('ccwc-video');
         if (videoplayer.isReady) {
+            // size canvas before getting context, otherwise it'll blow up the pixels weird
+            mycanvas.width = 300;
+            mycanvas.height = 300;
             videoplayer.canvasContext = mycanvas.getContext('2d');
         } else {
             document.querySelector('ccwc-video').addEventListener('ready', function(event) {
+                // size canvas before getting context, otherwise it'll blow up the pixels weird
+                mycanvas.width = 300;
+                mycanvas.height = 300;
                 videoplayer.canvasContext = mycanvas.getContext('2d');
             });
         }

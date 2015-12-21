@@ -2,9 +2,9 @@
 <html>
     <head>
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
-        <title>Demo: Steal Internal Canvas</title>
+        <title>Demo: Steal Internal Canvas (WebGL)</title>
         <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
-        <link rel="import" href="../ccwc-video.html">
+        <link rel="import" href="../ccwc-glvideo.html">
 
         <style>
             ccwc-video {
@@ -15,14 +15,13 @@
     </head>
 
     <body>
-        <h2>Demo: Steal Internal Canvas</h2>
+        <h2>Demo: Steal Internal Canvas (WebGL)</h2>
         <p>
             Instead of multiple canvas drawing, steal the video player's internal canvas context for ourselves outside of the component. Be sure you aren't using "useCanvasForDisplay" or the video element will be hidden
         </p>
         <ccwc-video
                 src="SampleVideo_360x240_1mb.mp4"
-                canvasRefreshInterval="100"
-                frameDataMode="imagedata">
+                canvasRefreshInterval="100" usewebgl>
         </ccwc-video>
 
         <canvas></canvas>
@@ -35,13 +34,13 @@
             // size canvas before getting context, otherwise it'll blow up the pixels weird
             mycanvas.width = 300;
             mycanvas.height = 300;
-            videoplayer.canvasContext = mycanvas.getContext('2d');
+            videoplayer.canvasContext = mycanvas.getContext('webgl');
         } else {
             document.querySelector('ccwc-video').addEventListener('ready', function(event) {
                 // size canvas before getting context, otherwise it'll blow up the pixels weird
                 mycanvas.width = 300;
                 mycanvas.height = 300;
-                videoplayer.canvasContext = mycanvas.getContext('2d');
+                videoplayer.canvasContext = mycanvas.getContext('webgl');
             });
         }
     </script>

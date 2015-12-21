@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+        <title>Demo: Custom WebGL Filter</title>
+        <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
+        <link rel="import" href="../ccwc-glvideo.html">
+
+        <style>
+            ccwc-video {
+                width: 250px;
+                height: 250px;
+            }
+        </style>
+
+        <script id="2d-fragment-shader" type="x-shader/x-fragment">
+            precision mediump float;
+            varying vec2 v_texCoord;
+
+            uniform sampler2D u_image;
+
+            void main(void) {
+                vec4 px = texture2D(u_image, v_texCoord);
+                float avg = (px.r + px.g + px.b)/3.0;
+                gl_FragColor = vec4(avg, avg, avg, px.a);
+            }
+        </script>
+
+        <script id="2d-vertex-shader" type="x-shader/x-vertex">
+            attribute vec2 a_position;
+            attribute vec2 a_texCoord;
+            uniform vec2 u_resolution;
+            varying vec2 v_texCoord;
+
+            void main() {
+                vec2 zeroToOne = a_position / u_resolution;
+                vec2 zeroToTwo = zeroToOne * 2.0;
+                vec2 clipSpace = zeroToTwo - 1.0;
+                gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+                v_texCoord = a_texCoord;
+            }
+        </script>
+    </head>
+
+    <body>
+        <h2>Demo: Apply Custom WebGL Filter</h2>
+        <p>
+            Apply Custom WebGL Filter
+        </p>
+        <ccwc-video
+                src="SampleVideo_360x240_1mb.mp4"
+                useCanvasForDisplay
+                canvasRefreshInterval="100"
+                glFilter="mycustomfilter" usewebgl>
+        </ccwc-video>
+
+        <script>
+            var glfilters = {
+                "mycustomfilter": {
+                    "vertex": document.getElementById('2d-vertex-shader').text,
+                    "fragment": document.getElementById('2d-fragment-shader').text
+                }
+            };
+            document.querySelector('ccwc-video').glFilterLibrary = glfilters;
+        </script>
+    </body>
+</html>
