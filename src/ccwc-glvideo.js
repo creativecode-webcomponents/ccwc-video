@@ -1,6 +1,8 @@
 if (!window.ccwc) { ccwc = {}; }
+if (!window.ccwc.image) { ccwc.image = {}; }
+if (!window.ccwc.image.utils) { ccwc.image.utils = {}; }
 
-ccwc.WebGLFilter = {
+ccwc.image.utils.glfilter = {
     /**
      * create filter from shaders
      * @param vertexShader
@@ -18,7 +20,7 @@ ccwc.WebGLFilter = {
      */
     createFilterFromName: function(name, shaderloc) {
         if (!shaderloc) {
-            shaderloc = ccwc.WebGLFilter.shaders;
+            shaderloc = ccwc.image.glshaders;
         }
         var vtx = shaderloc[name].vertex;
         var frg = shaderloc[name].fragment;
@@ -30,7 +32,7 @@ ccwc.WebGLFilter = {
      * @param webglcontext
      * @param filter
      */
-    createRenderProps: function(webglcontext, filter, texture, textureWidth, textureHeight) {
+    createRenderProps: function(webglcontext, filter, textures, textureWidth, textureHeight) {
         var props = {};
         if (!webglcontext) {
             var canvas = document.createElement('canvas')
@@ -39,20 +41,20 @@ ccwc.WebGLFilter = {
             props.gl = webglcontext;
         }
 
+        if (!textures.length) {
+            textures = [textures];
+        }
         props.filter = filter;
-        props.texture = texture;
+        props.textures = textures;
+        props.glTextures = [];
+        props.glTextureIndices = [];
 
-        if (textureWidth) {
-            props.textureWidth = textureWidth;
-        } else {
-            props.textureWidth = texture.width;
+        for (var c = 0; c < props.textures.length; c++) {
+            props.glTextureIndices.push(c);
         }
 
-        if (textureHeight) {
-            props.textureHeight = textureHeight;
-        } else {
-            props.textureHeight = textureHeight;
-        }
+        props.textureWidth = textureWidth;
+        props.textureHeight = textureHeight;
 
         props.canvas2DHelper = document.createElement('canvas');
         props.canvas2DHelper.width = props.textureWidth;
@@ -65,10 +67,16 @@ ccwc.WebGLFilter = {
     /**
      * render WebGL filter on current texture
      * @param glprops
+     * @param refreshTextureIndices texture refresh indices (optional)
      * @returns {*}
      */
-    render: function(glprops) {
+    render: function(glprops, refreshTextureIndices) {
         var glctx = glprops.gl;
+
+        if (!refreshTextureIndices) {
+            // refresh all textures unless specifying otherwise
+            refreshTextureIndices = glprops.glTextureIndices;
+        }
 
         if (!glprops.isInitialized) {
             var vertexShader = glctx.createShader(glctx.VERTEX_SHADER);
@@ -85,7 +93,10 @@ ccwc.WebGLFilter = {
             glctx.linkProgram(program);
             glctx.useProgram(program);
 
-            glprops.glTexture = glctx.createTexture();
+            for (var c = 0; c < glprops.textures.length; c++) {
+                glprops.glTextures.push(glctx.createTexture());
+            }
+
             var positionLocation = glctx.getAttribLocation(program, 'a_position');
             var texCoordBuffer = glctx.createBuffer();
             var rectCoordBuffer = glctx.createBuffer();
@@ -101,27 +112,30 @@ ccwc.WebGLFilter = {
             glctx.vertexAttribPointer(texCoordLocation, 2, glctx.FLOAT, false, 0, 0);
         }
 
-        glctx.bindTexture(glctx.TEXTURE_2D, glprops.glTexture);
+        for (var c = 0; c < refreshTextureIndices.length; c++) {
+            glctx.bindTexture(glctx.TEXTURE_2D, glprops.glTextures[refreshTextureIndices[c]]);
 
-        if (!glprops.isInitialized) {
-            glctx.texParameteri(glctx.TEXTURE_2D, glctx.TEXTURE_WRAP_S, glctx.CLAMP_TO_EDGE);
-            glctx.texParameteri(glctx.TEXTURE_2D, glctx.TEXTURE_WRAP_T, glctx.CLAMP_TO_EDGE);
-            glctx.texParameteri(glctx.TEXTURE_2D, glctx.TEXTURE_MIN_FILTER, glctx.NEAREST);
-            glctx.texParameteri(glctx.TEXTURE_2D, glctx.TEXTURE_MAG_FILTER, glctx.NEAREST);
-            glctx.texImage2D(glctx.TEXTURE_2D, 0, glctx.RGBA, glctx.RGBA, glctx.UNSIGNED_BYTE, glprops.texture);
+            if (!glprops.isInitialized) {
+                glctx.texParameteri(glctx.TEXTURE_2D, glctx.TEXTURE_WRAP_S, glctx.CLAMP_TO_EDGE);
+                glctx.texParameteri(glctx.TEXTURE_2D, glctx.TEXTURE_WRAP_T, glctx.CLAMP_TO_EDGE);
+                glctx.texParameteri(glctx.TEXTURE_2D, glctx.TEXTURE_MIN_FILTER, glctx.NEAREST);
+                glctx.texParameteri(glctx.TEXTURE_2D, glctx.TEXTURE_MAG_FILTER, glctx.NEAREST);
+                glctx.texImage2D(glctx.TEXTURE_2D, 0, glctx.RGBA, glctx.RGBA, glctx.UNSIGNED_BYTE, glprops.textures[refreshTextureIndices[c]]);
 
-            var resolutionLocationVertex = glctx.getUniformLocation(program, 'u_resolution');
-            var resolutionLocationFragment = glctx.getUniformLocation(program, 'f_resolution');
-            glctx.uniform2f(resolutionLocationVertex, glctx.canvas.width, glctx.canvas.height);
-            glctx.uniform2f(resolutionLocationFragment, glctx.canvas.width, glctx.canvas.height);
+                var resolutionLocationVertex = glctx.getUniformLocation(program, 'u_resolution');
+                var resolutionLocationFragment = glctx.getUniformLocation(program, 'f_resolution');
+                glctx.uniform2f(resolutionLocationVertex, glctx.canvas.width, glctx.canvas.height);
+                glctx.uniform2f(resolutionLocationFragment, glctx.canvas.width, glctx.canvas.height);
 
-            glctx.bindBuffer(glctx.ARRAY_BUFFER, rectCoordBuffer);
-            glctx.enableVertexAttribArray(positionLocation);
-            glctx.vertexAttribPointer(positionLocation, 2, glctx.FLOAT, false, 0, 0);
-            glctx.bufferData(glctx.ARRAY_BUFFER, rectCoords, glctx.STATIC_DRAW);
-        } else {
-            glctx.texSubImage2D(glctx.TEXTURE_2D, 0, 0, 0, glctx.RGBA, glctx.UNSIGNED_BYTE, glprops.texture);
+                glctx.bindBuffer(glctx.ARRAY_BUFFER, rectCoordBuffer);
+                glctx.enableVertexAttribArray(positionLocation);
+                glctx.vertexAttribPointer(positionLocation, 2, glctx.FLOAT, false, 0, 0);
+                glctx.bufferData(glctx.ARRAY_BUFFER, rectCoords, glctx.STATIC_DRAW);
+            } else {
+                glctx.texSubImage2D(glctx.TEXTURE_2D, 0, 0, 0, glctx.RGBA, glctx.UNSIGNED_BYTE, glprops.textures[refreshTextureIndices[c]]);
+            }
         }
+
 
         glctx.drawArrays(glctx.TRIANGLES, 0, 6);
         glprops.isInitialized = true;
@@ -147,7 +161,7 @@ ccwc.WebGLFilter = {
     }
 
 };
-ccwc.WebGLFilter.shaders = {
+ccwc.image.glshaders = {
   "freichen_edge_detection": {
     "fragment": "precision mediump float; uniform sampler2D u_image; varying vec2 v_texCoord; uniform vec2 f_resolution; vec2 texel = vec2(1.0 / f_resolution.x, 1.0 / f_resolution.y); mat3 G[9];  const mat3 g0 = mat3( 0.3535533845424652, 0, -0.3535533845424652, 0.5, 0, -0.5, 0.3535533845424652, 0, -0.3535533845424652 ); const mat3 g1 = mat3( 0.3535533845424652, 0.5, 0.3535533845424652, 0, 0, 0, -0.3535533845424652, -0.5, -0.3535533845424652 ); const mat3 g2 = mat3( 0, 0.3535533845424652, -0.5, -0.3535533845424652, 0, 0.3535533845424652, 0.5, -0.3535533845424652, 0 ); const mat3 g3 = mat3( 0.5, -0.3535533845424652, 0, -0.3535533845424652, 0, 0.3535533845424652, 0, 0.3535533845424652, -0.5 ); const mat3 g4 = mat3( 0, -0.5, 0, 0.5, 0, 0.5, 0, -0.5, 0 ); const mat3 g5 = mat3( -0.5, 0, 0.5, 0, 0, 0, 0.5, 0, -0.5 ); const mat3 g6 = mat3( 0.1666666716337204, -0.3333333432674408, 0.1666666716337204, -0.3333333432674408, 0.6666666865348816, -0.3333333432674408, 0.1666666716337204, -0.3333333432674408, 0.1666666716337204 ); const mat3 g7 = mat3( -0.3333333432674408, 0.1666666716337204, -0.3333333432674408, 0.1666666716337204, 0.6666666865348816, 0.1666666716337204, -0.3333333432674408, 0.1666666716337204, -0.3333333432674408 ); const mat3 g8 = mat3( 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408 );  void main(void) {      G[0] = g0,     G[1] = g1,     G[2] = g2,     G[3] = g3,     G[4] = g4,     G[5] = g5,     G[6] = g6,     G[7] = g7,     G[8] = g8;      mat3 I;     float cnv[9];     vec3 sampl;      for (float i=0.0; i<3.0; i++) {         for (float j=0.0; j<3.0; j++) {             sampl = texture2D(u_image, v_texCoord + texel * vec2(i-1.0,j-1.0) ).rgb;             I[int(i)][int(j)] = length(sampl);         }     }      for (int i=0; i<9; i++) {         float dp3 = dot(G[i][0], I[0]) + dot(G[i][1], I[1]) + dot(G[i][2], I[2]);         cnv[i] = dp3 * dp3;     }      float M = (cnv[0] + cnv[1]) + (cnv[2] + cnv[3]);     float S = (cnv[4] + cnv[5]) + (cnv[6] + cnv[7]) + (cnv[8] + M);      gl_FragColor = vec4(vec3(sqrt(M/S)), texture2D( u_image, v_texCoord ).a ); }",
     "vertex": "attribute vec2 a_position; attribute vec2 a_texCoord; uniform vec2 u_resolution; varying vec2 v_texCoord;  void main() {     vec2 zeroToOne = a_position / u_resolution;     vec2 zeroToTwo = zeroToOne * 2.0;     vec2 clipSpace = zeroToTwo - 1.0;     gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);     v_texCoord = a_texCoord; }"
@@ -284,8 +298,8 @@ var CCWCVideo = (function (_HTMLElement) {
              * @type {Object}
              * @default passthrough
              */
-            if (ccwc && ccwc.WebGLFilter && ccwc.WebGLFilter.shaders) {
-                this._glFilterLibrary = this._glFilterLibrary ? this._glFilterLibrary : ccwc.WebGLFilter.shaders;
+            if (window.ccwc && ccwc.image && ccwc.image.glshaders) {
+                this._glFilterLibrary = this._glFilterLibrary ? this._glFilterLibrary : ccwc.image.glshaders;
             }
 
             /**
@@ -413,8 +427,8 @@ var CCWCVideo = (function (_HTMLElement) {
             }
 
             if (this._useWebGL) {
-                var filter = ccwc.WebGLFilter.createFilterFromName(this._glFilter, this._glFilterLibrary);
-                this.glProps = ccwc.WebGLFilter.createRenderProps(this.canvasctx, filter, this.videoElement, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+                var filter = ccwc.image.utils.glfilter.createFilterFromName(this._glFilter, this._glFilterLibrary);
+                this.glProps = ccwc.image.utils.glfilter.createRenderProps(this.canvasctx, filter, this.videoElement, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
             }
         }
 
@@ -475,7 +489,7 @@ var CCWCVideo = (function (_HTMLElement) {
             }
             if (!noredraw) {
                 if (this._useWebGL) {
-                    ccwc.WebGLFilter.render(this.glProps);
+                    ccwc.image.utils.glfilter.render(this.glProps, [0]);
                 } else {
                     this.canvasctx.drawImage(this.videoElement, 0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
 
@@ -500,7 +514,7 @@ var CCWCVideo = (function (_HTMLElement) {
                 case 'imagedata':
                     if (!filtered) {
                         if (this._useWebGL) {
-                            data = ccwc.WebGLFilter.getCanvasPixels(this.glProps);
+                            data = ccwc.image.utils.glfilter.getCanvasPixels(this.glProps);
                         } else {
                             data = this.canvasctx.getImageData(0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
                         }

@@ -16,9 +16,9 @@ gulp.task('build', function () {
 });
 
 gulp.task('glbuild', function () {
-    return gulp.src(['node_modules/ccwc-image-utils/src/webglfilter.js', 'node_modules/ccwc-image-utils/src/shaders.js', 'src/ccwc-video.js'])
-        .pipe(sourcemaps.init())
+    return gulp.src(['node_modules/ccwc-image-utils/ccwc-image-utils-gpu.js', 'src/ccwc-video.js'])
         .pipe(concat('ccwc-glvideo.js'))
+        .pipe(sourcemaps.init())
         .pipe(sourcemaps.write('.'))
         .pipe(gulp.dest('./src'));
 });

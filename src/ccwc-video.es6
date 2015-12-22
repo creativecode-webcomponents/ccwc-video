@@ -93,8 +93,8 @@ class CCWCVideo extends HTMLElement {
          * @type {Object}
          * @default passthrough
          */
-        if (ccwc && ccwc.WebGLFilter && ccwc.WebGLFilter.shaders) {
-            this._glFilterLibrary = this._glFilterLibrary ? this._glFilterLibrary : ccwc.WebGLFilter.shaders;
+        if (window.ccwc && ccwc.image && ccwc.image.glshaders) {
+            this._glFilterLibrary = this._glFilterLibrary ? this._glFilterLibrary : ccwc.image.glshaders;
         }
 
         /**
@@ -220,8 +220,8 @@ class CCWCVideo extends HTMLElement {
         }
 
         if (this._useWebGL) {
-            var filter = ccwc.WebGLFilter.createFilterFromName(this._glFilter, this._glFilterLibrary);
-            this.glProps = ccwc.WebGLFilter.createRenderProps(this.canvasctx, filter, this.videoElement, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+            var filter = ccwc.image.utils.glfilter.createFilterFromName(this._glFilter, this._glFilterLibrary);
+            this.glProps = ccwc.image.utils.glfilter.createRenderProps(this.canvasctx, filter, this.videoElement, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
         }
     }
 
@@ -334,7 +334,7 @@ class CCWCVideo extends HTMLElement {
         }
         if (!noredraw) {
             if (this._useWebGL) {
-                ccwc.WebGLFilter.render(this.glProps);
+                ccwc.image.utils.glfilter.render(this.glProps, [0]);
             } else {
                 this.canvasctx.drawImage(
                     this.videoElement, 0, 0,
@@ -363,7 +363,7 @@ class CCWCVideo extends HTMLElement {
             case 'imagedata':
                 if (!filtered) {
                     if (this._useWebGL) {
-                        data = ccwc.WebGLFilter.getCanvasPixels(this.glProps);
+                        data = ccwc.image.utils.glfilter.getCanvasPixels(this.glProps);
                     } else {
                         data = this.canvasctx.getImageData(0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
                     }
