@@ -109,6 +109,20 @@ var CCWCVideo = (function (_HTMLElement) {
             this._glFilter = 'passthrough';
 
             /**
+             * When reading pixels to a buffer, the image is upside down, correct this with the texture reading
+             * @type {Boolean}
+             * @default false
+             */
+            this._glFlipTexture = false;
+
+            /**
+             * When the texture read (_glReadFlipCorrection) is true, this makes the display go upside down, correct the canvas by inverse scaling in the vertical
+             * @type {Boolean}
+             * @default false
+             */
+            this._flipCanvas = false;
+
+            /**
              * WebGL shaders object for filter lookup
              * @type {Object}
              * @default passthrough
@@ -243,7 +257,11 @@ var CCWCVideo = (function (_HTMLElement) {
 
             if (this._useWebGL) {
                 var filter = ccwc.image.utils.glfilter.createFilterFromName(this._glFilter, this._glFilterLibrary);
+
+                // texture comes in upside down. We can flip it according to this boolean
+                // the cost is that the texture is now flipped on the display, but flipCanvas (if true) will flip accordingly
                 this.glProps = ccwc.image.utils.glfilter.createRenderProps(this.canvasctx, filter, this.videoElement, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+                this.glProps.flipTexture = this._glFlipTexture;
             }
         }
 
@@ -482,6 +500,14 @@ var CCWCVideo = (function (_HTMLElement) {
                 this._glFilter = this.getAttribute('glFilter');
             }
 
+            if (this.hasAttribute('flipCanvas')) {
+                this._flipCanvas = true;
+            }
+
+            if (this.hasAttribute('glFlipTexture')) {
+                this._glFlipTexture = true;
+            }
+
             if (this.canvasRefreshInterval === 0 && this.useCanvasForDisplay) {
                 console.log('Warning: Using canvas for display, but the canvas refresh interval is not set or set to 0. Setting refresh interval to 250ms.');
                 this.canvasRefreshInterval = 250;
@@ -522,6 +548,10 @@ var CCWCVideo = (function (_HTMLElement) {
                 return _this3.onPlaying(e);
             });
             this.canvasElement = this.root.querySelector('#canvas');
+
+            if (this._flipCanvas) {
+                this.canvasElement.style.transform = 'scale(1, -1)';
+            }
             this.videoElement.onloadedmetadata = function (e) {
                 _this3.onResize();
             };

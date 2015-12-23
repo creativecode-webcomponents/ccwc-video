@@ -48,6 +48,7 @@ ccwc.image.utils.glfilter = {
         props.textures = textures;
         props.glTextures = [];
         props.glTextureIndices = [];
+        props.flipTexture = false;
 
         for (var c = 0; c < props.textures.length; c++) {
             props.glTextureIndices.push(c);
@@ -120,6 +121,7 @@ ccwc.image.utils.glfilter = {
                 glctx.texParameteri(glctx.TEXTURE_2D, glctx.TEXTURE_WRAP_T, glctx.CLAMP_TO_EDGE);
                 glctx.texParameteri(glctx.TEXTURE_2D, glctx.TEXTURE_MIN_FILTER, glctx.NEAREST);
                 glctx.texParameteri(glctx.TEXTURE_2D, glctx.TEXTURE_MAG_FILTER, glctx.NEAREST);
+                glctx.pixelStorei(glctx.UNPACK_FLIP_Y_WEBGL, glprops.flipTexture);
                 glctx.texImage2D(glctx.TEXTURE_2D, 0, glctx.RGBA, glctx.RGBA, glctx.UNSIGNED_BYTE, glprops.textures[refreshTextureIndices[c]]);
 
                 var resolutionLocationVertex = glctx.getUniformLocation(program, 'u_resolution');
@@ -152,9 +154,7 @@ ccwc.image.utils.glfilter = {
         if (!glprops.pixelarray) {
             glprops.pixelarray = new Uint8Array(glctx.canvas.width * glctx.canvas.height * 4);
         }
-        glctx.pixelStorei(glctx.UNPACK_FLIP_Y_WEBGL, true);
         glctx.readPixels(0, 0, glctx.canvas.width, glctx.canvas.height, glctx.RGBA, glctx.UNSIGNED_BYTE, glprops.pixelarray);
-        glctx.pixelStorei(glctx.UNPACK_FLIP_Y_WEBGL, false);
         var imgData = glprops.canvas2DHelperContext.createImageData(glctx.canvas.width, glctx.canvas.height);
         imgData.data.set(new Uint8ClampedArray(glprops.pixelarray));
         return imgData;
@@ -294,6 +294,20 @@ var CCWCVideo = (function (_HTMLElement) {
             this._glFilter = 'passthrough';
 
             /**
+             * When reading pixels to a buffer, the image is upside down, correct this with the texture reading
+             * @type {Boolean}
+             * @default false
+             */
+            this._glFlipTexture = false;
+
+            /**
+             * When the texture read (_glReadFlipCorrection) is true, this makes the display go upside down, correct the canvas by inverse scaling in the vertical
+             * @type {Boolean}
+             * @default false
+             */
+            this._flipCanvas = false;
+
+            /**
              * WebGL shaders object for filter lookup
              * @type {Object}
              * @default passthrough
@@ -428,7 +442,11 @@ var CCWCVideo = (function (_HTMLElement) {
 
             if (this._useWebGL) {
                 var filter = ccwc.image.utils.glfilter.createFilterFromName(this._glFilter, this._glFilterLibrary);
+
+                // texture comes in upside down. We can flip it according to this boolean
+                // the cost is that the texture is now flipped on the display, but flipCanvas (if true) will flip accordingly
                 this.glProps = ccwc.image.utils.glfilter.createRenderProps(this.canvasctx, filter, this.videoElement, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+                this.glProps.flipTexture = this._glFlipTexture;
             }
         }
 
@@ -667,6 +685,14 @@ var CCWCVideo = (function (_HTMLElement) {
                 this._glFilter = this.getAttribute('glFilter');
             }
 
+            if (this.hasAttribute('flipCanvas')) {
+                this._flipCanvas = true;
+            }
+
+            if (this.hasAttribute('glFlipTexture')) {
+                this._glFlipTexture = true;
+            }
+
             if (this.canvasRefreshInterval === 0 && this.useCanvasForDisplay) {
                 console.log('Warning: Using canvas for display, but the canvas refresh interval is not set or set to 0. Setting refresh interval to 250ms.');
                 this.canvasRefreshInterval = 250;
@@ -707,6 +733,10 @@ var CCWCVideo = (function (_HTMLElement) {
                 return _this3.onPlaying(e);
             });
             this.canvasElement = this.root.querySelector('#canvas');
+
+            if (this._flipCanvas) {
+                this.canvasElement.style.transform = 'scale(1, -1)';
+            }
             this.videoElement.onloadedmetadata = function (e) {
                 _this3.onResize();
             };

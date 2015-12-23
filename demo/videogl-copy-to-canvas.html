@@ -19,9 +19,18 @@
         <p>
             Use the frame data event from a WebGL canvas to trigger drawing to another canvas
         </p>
+        <p>
+            <strong>IMPORTANT</strong><br/>
+            Because of the way WebGL reads pixels, they appear upside down. You could take the framedata and flip it yourself (potentially costing CPU cycles),
+            or you can use the glFlipTexture attribute to flip how the texture is drawn. Unfortunately, if you do this, it will flip your main display (if using the canvas
+            to render). In that case, either don't useCanvasForDisplay, or use the flipCanvas attribute to use a CSS transform and use scale(1, -1) to account for this texture flip
+        </p>
         <ccwc-video
                 src="SampleVideo_360x240_1mb.mp4"
                 canvasRefreshInterval="100" usewebgl
+                useCanvasForDisplay
+                flipCanvas
+                glFlipTexture
                 frameDataMode="imagedata">
         </ccwc-video>
 
