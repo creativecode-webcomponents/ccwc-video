@@ -107,8 +107,8 @@ class CCWCVideo extends HTMLElement {
          * @type {Object}
          * @default passthrough
          */
-        if (window.ccwc && ccwc.image && ccwc.image.glshaders) {
-            this._glFilterLibrary = this._glFilterLibrary ? this._glFilterLibrary : ccwc.image.glshaders;
+        if (window.ccwc && ccwc.image && ccwc.image.webgl.shaders) {
+            this._glFilterLibrary = this._glFilterLibrary ? this._glFilterLibrary : ccwc.image.webgl.shaders;
         }
 
         /**
@@ -234,11 +234,11 @@ class CCWCVideo extends HTMLElement {
         }
 
         if (this._useWebGL) {
-            var filter = ccwc.image.utils.glfilter.createFilterFromName(this._glFilter, this._glFilterLibrary);
+            var filter = ccwc.image.webgl.filter.createFilterFromName(this._glFilter, this._glFilterLibrary);
 
             // texture comes in upside down. We can flip it according to this boolean
             // the cost is that the texture is now flipped on the display, but flipCanvas (if true) will flip accordingly
-            this.glProps = ccwc.image.utils.glfilter.createRenderProps(this.canvasctx, filter, this.videoElement, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+            this.glProps = ccwc.image.webgl.filter.createRenderProps(this.canvasctx, filter, this.videoElement, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
             this.glProps.flipTexture = this._glFlipTexture;
         }
     }
@@ -352,7 +352,7 @@ class CCWCVideo extends HTMLElement {
         }
         if (!noredraw) {
             if (this._useWebGL) {
-                ccwc.image.utils.glfilter.render(this.glProps, [0]);
+                ccwc.image.webgl.filter.render(this.glProps, [0]);
             } else {
                 this.canvasctx.drawImage(
                     this.videoElement, 0, 0,
@@ -381,7 +381,7 @@ class CCWCVideo extends HTMLElement {
             case 'imagedata':
                 if (!filtered) {
                     if (this._useWebGL) {
-                        data = ccwc.image.utils.glfilter.getCanvasPixels(this.glProps);
+                        data = ccwc.image.webgl.filter.getCanvasPixels(this.glProps);
                     } else {
                         data = this.canvasctx.getImageData(0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
                     }

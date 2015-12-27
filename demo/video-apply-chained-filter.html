@@ -4,7 +4,7 @@
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
     <title>Demo: Apply Chained Filter</title>
     <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
-    <script src="../node_modules/ccwc-image-utils/ccwc-image-utils-cpu.js"></script>
+    <script src="../node_modules/ccwc-image-utils/ccwc-image-utils-canvas.js"></script>
     <link rel="import" href="../ccwc-video.html">
 
     <style>
@@ -31,9 +31,9 @@
 
 <script>
     var ctx = document.querySelector('canvas').getContext('2d');
-    var filter = new ccwc.image.utils.filterchain();
+    var filter = new ccwc.image.canvas.FilterChain();
     document.querySelector('ccwc-video').canvasFilter = function(imgdata) {
-        return new ccwc.image.utils.filterchain(imgdata).toGrayscale().saturate().result;
+        return new ccwc.image.canvas.FilterChain(imgdata).toGrayscale().saturate().result;
     }
 </script>
 </html>

@@ -16,7 +16,7 @@ gulp.task('build', function () {
 });
 
 gulp.task('glbuild', function () {
-    return gulp.src(['node_modules/ccwc-image-utils/ccwc-image-utils-gpu.js', 'src/ccwc-video.js'])
+    return gulp.src(['node_modules/ccwc-image-utils/ccwc-image-utils-webgl.js', 'src/ccwc-video.js'])
         .pipe(concat('ccwc-glvideo.js'))
         .pipe(sourcemaps.init())
         .pipe(sourcemaps.write('.'))
