@@ -82,34 +82,11 @@ class CCWCVideo extends HTMLElement {
         this.canvasFilter = null;
 
         /**
-         * WebGL filter name
-         * @type {string}
-         * @default passthrough
-         */
-        this._glFilter = 'passthrough';
-
-        /**
-         * When reading pixels to a buffer, the image is upside down, correct this with the texture reading
-         * @type {Boolean}
-         * @default false
-         */
-        this._glFlipTexture = false;
-
-        /**
          * When the texture read (_glReadFlipCorrection) is true, this makes the display go upside down, correct the canvas by inverse scaling in the vertical
          * @type {Boolean}
          * @default false
          */
         this._flipCanvas = false;
-
-        /**
-         * WebGL shaders object for filter lookup
-         * @type {Object}
-         * @default passthrough
-         */
-        if (window.ccwc && ccwc.image && ccwc.image.webgl.shaders) {
-            this._glFilterLibrary = this._glFilterLibrary ? this._glFilterLibrary : ccwc.image.webgl.shaders;
-        }
 
         /**
          * refresh interval when using the canvas for display
@@ -234,12 +211,10 @@ class CCWCVideo extends HTMLElement {
         }
 
         if (this._useWebGL) {
-            var filter = ccwc.image.webgl.filter.createFilterFromName(this._glFilter, this._glFilterLibrary);
+            this.webglProperties.renderer = this.webglProperties.setupHandler.apply(this, [this.webglProperties]);
+            var event = new CustomEvent('webglsetup', { detail: { properties: this.webglProperties } });
+            this.dispatchEvent(event);
 
-            // texture comes in upside down. We can flip it according to this boolean
-            // the cost is that the texture is now flipped on the display, but flipCanvas (if true) will flip accordingly
-            this.glProps = ccwc.image.webgl.filter.createRenderProps(this.canvasctx, filter, this.videoElement, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
-            this.glProps.flipTexture = this._glFlipTexture;
         }
     }
 
@@ -307,14 +282,6 @@ class CCWCVideo extends HTMLElement {
     };
 
     /**
-     * set filter dictionary for WebGL
-     * @param filters
-     */
-    set glFilterLibrary(filters) {
-        this._glFilterLibrary = filters;
-    }
-
-    /**
      * get video source
      * @return {string | int} src video source uri
      */
@@ -352,7 +319,7 @@ class CCWCVideo extends HTMLElement {
         }
         if (!noredraw) {
             if (this._useWebGL) {
-                ccwc.image.webgl.filter.render(this.glProps, [0]);
+                this.webglProperties.renderHandler(this.webglProperties.renderer);
             } else {
                 this.canvasctx.drawImage(
                     this.videoElement, 0, 0,
@@ -381,7 +348,7 @@ class CCWCVideo extends HTMLElement {
             case 'imagedata':
                 if (!filtered) {
                     if (this._useWebGL) {
-                        data = ccwc.image.webgl.filter.getCanvasPixels(this.glProps);
+                        data = ccwc.image.webgl.filter.getCanvasPixels(this.webglProperties.renderer);
                     } else {
                         data = this.canvasctx.getImageData(0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
                     }
@@ -474,11 +441,40 @@ class CCWCVideo extends HTMLElement {
     };
 
     /**
+     * setup handler for WebGL Scene
+     * @param {Object} props webgl properties
+     * @return renderer instance
+     */
+    webglSetupHandler(props) {
+        var filter;
+        if (props.vertexShader && props.fragmentShader) {
+            filter = ccwc.image.webgl.filter.createFilterFromShaders(props.vertexShader, props.fragmentShader)
+        } else {
+            filter = ccwc.image.webgl.filter.createFilterFromName(props.filter, props.filterLibrary);
+        }
+        props.textures.unshift(this.videoElement);
+        // texture comes in upside down. We can flip it according to this boolean
+        // the cost is that the texture is now flipped on the display, but flipCanvas (if true) will flip accordingly
+        console.log(props.textures)
+        var renderer = ccwc.image.webgl.filter.createRenderProps(this.canvasctx, filter, props.textures, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+        renderer.flipTexture = props.flipTexture;
+        return renderer;
+    };
+
+    /**
+     * render handler for WebGL Scene
+     * @param renderer WebGL render properties
+     */
+    webglRenderHandler(renderer) {
+        ccwc.image.webgl.filter.render(renderer, [0, 1]);
+    };
+
+    /**
      * parse attributes on element
      * @private
      */
     parseAttributes() {
-        if (this.hasAttribute('useCamera')) {
+        if (this.hasAttribute('useCamera') || this.hasAttribute('usecamera')) {
             this._useCamera = true;
         } else {
             this._useCamera = false;
@@ -506,12 +502,12 @@ class CCWCVideo extends HTMLElement {
             this.canvasScale = parseFloat(this.getAttribute('canvasScale'));
         }
 
-        if (this.hasAttribute('usewebgl')) {
+        if (this.hasAttribute('usewebgl') || this.hasAttribute('useWebGL')) {
             this._useWebGL = true;
         }
 
         if (this.hasAttribute('glfilter')) {
-            this._glFilter = this.getAttribute('glFilter');
+            this.webglProperties.filter = this.getAttribute('glFilter');
         }
 
         if (this.hasAttribute('flipCanvas')) {
@@ -519,7 +515,7 @@ class CCWCVideo extends HTMLElement {
         }
 
         if (this.hasAttribute('glFlipTexture')) {
-            this._glFlipTexture = true;
+            this.webglProperties.flipTexture = true;
         }
 
         if (this.canvasRefreshInterval === 0 && this.useCanvasForDisplay) {
@@ -533,6 +529,15 @@ class CCWCVideo extends HTMLElement {
      * @private
      */
     createdCallback() {
+        this.webglProperties = {
+            flipTexture: false,
+            filterLibrary: ccwc.image.webgl.shaders,
+            setupHandler: this.webglSetupHandler,
+            renderHandler: this.webglRenderHandler,
+            filter: 'passthrough',
+            textures: []
+        };
+
         this.setProperties();
         this.parseAttributes();
     };
