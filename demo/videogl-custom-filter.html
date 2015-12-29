@@ -51,17 +51,12 @@
                 src="SampleVideo_360x240_1mb.mp4"
                 useCanvasForDisplay
                 canvasRefreshInterval="100"
-                glFilter="mycustomfilter" usewebgl>
+                useWebGL>
         </ccwc-video>
 
         <script>
-            var glfilters = {
-                "mycustomfilter": {
-                    "vertex": document.getElementById('2d-vertex-shader').text,
-                    "fragment": document.getElementById('2d-fragment-shader').text
-                }
-            };
-            document.querySelector('ccwc-video').webglProperties.filterLibrary = glfilters;
+            document.querySelector('ccwc-video').webglProperties.vertexShader = document.getElementById('2d-vertex-shader').text;
+            document.querySelector('ccwc-video').webglProperties.fragmentShader = document.getElementById('2d-fragment-shader').text;
         </script>
     </body>
 </html>

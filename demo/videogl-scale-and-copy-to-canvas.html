@@ -28,9 +28,7 @@
         <ccwc-video
                 src="SampleVideo_360x240_1mb.mp4"
                 canvasScale=".5"
-                usewebgl
-                flipCanvas
-                glFlipTexture
+                useWebGL='{"flipTextureY": true}'
                 frameDataMode="imagedata"
                 canvasRefreshInterval="100">
         </ccwc-video>
@@ -41,8 +39,6 @@
     <script>
         var ctx = document.querySelector('canvas').getContext('2d');
         document.querySelector('ccwc-video').addEventListener('frameupdate', function(event) {
-            ctx.canvas.width = event.detail.width;
-            ctx.canvas.height = event.detail.height;
             ctx.putImageData(event.detail.framedata, 0, 0);
         });
     </script>

@@ -47,16 +47,15 @@
         video.webglProperties.vertexShader = ccwc.image.webgl.shaders.passthrough.vertex;
         video.webglProperties.fragmentShader = document.getElementById('2d-fragment-shader').text;
 
-        var img = new Image();
-        img.src = 'images/food.jpg';
-        video.webglProperties.textures.push(img);
-
         video.addEventListener('webglsetup', function(event) {
-            event.detail.properties.renderer.uniforms.add('u_weight', ccwc.image.webgl.uniforms.UNIFORM2f, [0.5, 0.5])
+            event.detail.properties.renderobj.uniforms.add('u_weight', ccwc.image.webgl.uniforms.UNIFORM2f, [0.5, 0.5]);
+            var img = new Image();
+            img.src = 'images/food.jpg';
+            event.detail.properties.renderobj.textures.add('food', img);
         });
 
         function onSliderChange(event) {
-            video.webglProperties.renderer.uniforms.update('u_weight', [ event.target.value/100, 1- event.target.value/100]);
+            video.webglProperties.renderobj.uniforms.update('u_weight', [ event.target.value/100, 1- event.target.value/100]);
         }
     </script>
 </body>

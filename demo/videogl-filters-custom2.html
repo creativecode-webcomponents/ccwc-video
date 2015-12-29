@@ -25,11 +25,11 @@
                 useCanvasForDisplay
                 canvasRefreshInterval="10"
                 src="0"
-                glFilter="sobel_inverted" usewebgl>
+                useWebGL='{"filter": "sobel_inverted"}'>
         </ccwc-video>
 
         <script>
-            document.querySelector('ccwc-video').glFilterLibrary = filters;
+            document.querySelector('ccwc-video').webglProperties.filterLibrary = filters;
         </script>
     </body>
 </html>

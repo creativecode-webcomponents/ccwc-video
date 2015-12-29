@@ -21,7 +21,7 @@
         </p>
         <ccwc-video
                 src="SampleVideo_360x240_1mb.mp4"
-                canvasRefreshInterval="100" usewebgl>
+                canvasRefreshInterval="100" useWebGL>
         </ccwc-video>
 
         <canvas></canvas>
@@ -29,17 +29,13 @@
 
     <script>
         var mycanvas = document.querySelector('canvas');
+        mycanvas.width = 300;
+        mycanvas.height = 250;
         var videoplayer = document.querySelector('ccwc-video');
         if (videoplayer.isReady) {
-            // size canvas before getting context, otherwise it'll blow up the pixels weird
-            mycanvas.width = 300;
-            mycanvas.height = 300;
             videoplayer.canvasContext = mycanvas.getContext('webgl');
         } else {
             document.querySelector('ccwc-video').addEventListener('ready', function(event) {
-                // size canvas before getting context, otherwise it'll blow up the pixels weird
-                mycanvas.width = 300;
-                mycanvas.height = 300;
                 videoplayer.canvasContext = mycanvas.getContext('webgl');
             });
         }

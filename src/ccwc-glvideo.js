@@ -34,39 +34,44 @@ ccwc.image.webgl.filter = {
 
     /**
      * create object for render
-     * @param webglcontext
-     * @param filter
+     * @param {Object}params
      */
-    createRenderProps: function(webglcontext, filter, textures, textureWidth, textureHeight) {
+    createRenderObject: function(params) {
         var props = {};
-        if (!webglcontext) {
-            var canvas = document.createElement('canvas')
-            props.gl = canvas.getContext('webgl');
-        } else {
-            props.gl = webglcontext;
-        }
 
-        if (!textures.length) {
-            textures = [textures];
-        }
-        props.filter = filter;
-        props.textures = textures;
-        props.glTextures = [];
-        props.glTextureIndices = [];
-        props.flipTexture = false;
+        props.gl = params.gl;
+        props.width = props.gl.canvas.width;
+        props.height = props.gl.canvas.height;
 
-        for (var c = 0; c < props.textures.length; c++) {
-            props.glTextureIndices.push(c);
-        }
+        if (params.width) { props.width = params.width; }
+        if (params.height) { props.height = params.height; }
 
-        props.textureWidth = textureWidth;
-        props.textureHeight = textureHeight;
+        props.filter = params.filter;
+        props.textures = new ccwc.image.webgl.textures(props.width,props.height);
 
         props.canvas2DHelper = document.createElement('canvas');
-        props.canvas2DHelper.width = props.textureWidth;
-        props.canvas2DHelper.height = props.textureHeight;
+        props.canvas2DHelper.width = props.width;
+        props.canvas2DHelper.height = props.height;
         props.canvas2DHelperContext = props.canvas2DHelper.getContext('2d');
+
         props.uniforms = new ccwc.image.webgl.uniforms();
+        props.textures = new ccwc.image.webgl.textures(props.gl, props.width, props.height);
+
+        if (params.textures) {
+            for (var c = 0; c < params.textures.length; c++) {
+                props.textures.add(params.textures[c].name, params.textures[c].texture, params.textures[c].index, params.textures[c].pixelStore);
+            }
+        }
+
+        if (params.uniforms) {
+            for (var c = 0; c < params.uniforms.length; c++) {
+                props.uniforms.add(params.uniforms[c].name, params.uniforms[c].type, params.uniforms[c].values);
+            }
+        }
+
+        if (params.autorender) {
+            return this.render(props);
+        }
 
         return props;
     },
@@ -77,82 +82,50 @@ ccwc.image.webgl.filter = {
      * @param refreshTextureIndices texture refresh indices (optional)
      * @returns {*}
      */
-    render: function(glprops, refreshTextureIndices) {
-        var glctx = glprops.gl;
-
-        if (!refreshTextureIndices) {
-            // refresh all textures unless specifying otherwise
-            refreshTextureIndices = glprops.glTextureIndices;
-        }
-
+    render: function(glprops) {
         if (!glprops.isInitialized) {
-            var vertexShader = glctx.createShader(glctx.VERTEX_SHADER);
-            glctx.shaderSource(vertexShader, glprops.filter.vertexShader);
-            glctx.compileShader(vertexShader);
+            var vertexShader = glprops.gl.createShader(glprops.gl.VERTEX_SHADER);
+            glprops.gl.shaderSource(vertexShader, glprops.filter.vertexShader);
+            glprops.gl.compileShader(vertexShader);
 
-            var fragmentShader = glctx.createShader(glctx.FRAGMENT_SHADER);
-            glctx.shaderSource(fragmentShader, glprops.filter.fragmentShader);
-            glctx.compileShader(fragmentShader);
+            var fragmentShader = glprops.gl.createShader(glprops.gl.FRAGMENT_SHADER);
+            glprops.gl.shaderSource(fragmentShader, glprops.filter.fragmentShader);
+            glprops.gl.compileShader(fragmentShader);
 
-            glprops.program = glctx.createProgram();
-            glctx.attachShader(glprops.program, vertexShader);
-            glctx.attachShader(glprops.program, fragmentShader);
-            glctx.linkProgram(glprops.program);
-            glctx.useProgram(glprops.program);
+            glprops.program = glprops.gl.createProgram();
+            glprops.gl.attachShader(glprops.program, vertexShader);
+            glprops.gl.attachShader(glprops.program, fragmentShader);
+            glprops.gl.linkProgram(glprops.program);
+            glprops.gl.useProgram(glprops.program);
 
-            for (var c = 0; c < glprops.textures.length; c++) {
-                glprops.glTextures.push(glctx.createTexture());
-            }
-
-            var positionLocation = glctx.getAttribLocation(glprops.program, 'a_position');
-            var texCoordBuffer = glctx.createBuffer();
-            var rectCoordBuffer = glctx.createBuffer();
+            var positionLocation = glprops.gl.getAttribLocation(glprops.program, 'a_position');
+            var texCoordBuffer = glprops.gl.createBuffer();
+            var rectCoordBuffer = glprops.gl.createBuffer();
             var texCoords = new Float32Array([0.0,  0.0, 1.0,  0.0, 0.0,  1.0, 0.0,  1.0, 1.0,  0.0, 1.0,  1.0]);
-            var rectCoords = new Float32Array([0, 0, glprops.textureWidth, 0, 0, glprops.textureHeight, 0,
-                glprops.textureHeight, glprops.textureWidth, 0, glprops.textureWidth, glprops.textureHeight]);
+            var rectCoords = new Float32Array([0, 0, glprops.textures.width, 0, 0, glprops.textures.height, 0,
+                glprops.textures.height, glprops.textures.width, 0, glprops.textures.width, glprops.textures.height]);
 
-            glctx.bindBuffer(glctx.ARRAY_BUFFER, texCoordBuffer);
-            glctx.bufferData(glctx.ARRAY_BUFFER, texCoords, glctx.STATIC_DRAW);
+            glprops.gl.bindBuffer(glprops.gl.ARRAY_BUFFER, texCoordBuffer);
+            glprops.gl.bufferData(glprops.gl.ARRAY_BUFFER, texCoords, glprops.gl.STATIC_DRAW);
 
-            var texCoordLocation = glctx.getAttribLocation(glprops.program, 'a_texCoord');
-            glctx.enableVertexAttribArray(texCoordLocation);
-            glctx.vertexAttribPointer(texCoordLocation, 2, glctx.FLOAT, false, 0, 0);
+            var texCoordLocation = glprops.gl.getAttribLocation(glprops.program, 'a_texCoord');
+            glprops.gl.enableVertexAttribArray(texCoordLocation);
+            glprops.gl.vertexAttribPointer(texCoordLocation, 2, glprops.gl.FLOAT, false, 0, 0);
+
+            glprops.uniforms.add('u_resolution', ccwc.image.webgl.uniforms.UNIFORM2f, [glprops.gl.canvas.width, glprops.gl.canvas.height]);
+            glprops.uniforms.add('f_resolution', ccwc.image.webgl.uniforms.UNIFORM2f, [glprops.gl.canvas.width, glprops.gl.canvas.height]);
+
+            glprops.gl.bindBuffer(glprops.gl.ARRAY_BUFFER, rectCoordBuffer);
+            glprops.gl.enableVertexAttribArray(positionLocation);
+            glprops.gl.vertexAttribPointer(positionLocation, 2, glprops.gl.FLOAT, false, 0, 0);
+            glprops.gl.bufferData(glprops.gl.ARRAY_BUFFER, rectCoords, glprops.gl.STATIC_DRAW);
         }
 
-        if (!glprops.isInitialized) {
-            for (var c = 0; c < refreshTextureIndices.length; c++) {
-                glctx.bindTexture(glctx.TEXTURE_2D, glprops.glTextures[refreshTextureIndices[c]]);
-                glctx.texParameteri(glctx.TEXTURE_2D, glctx.TEXTURE_WRAP_S, glctx.CLAMP_TO_EDGE);
-                glctx.texParameteri(glctx.TEXTURE_2D, glctx.TEXTURE_WRAP_T, glctx.CLAMP_TO_EDGE);
-                glctx.texParameteri(glctx.TEXTURE_2D, glctx.TEXTURE_MIN_FILTER, glctx.NEAREST);
-                glctx.texParameteri(glctx.TEXTURE_2D, glctx.TEXTURE_MAG_FILTER, glctx.NEAREST);
-                glctx.pixelStorei(glctx.UNPACK_FLIP_Y_WEBGL, glprops.flipTexture);
-                glctx.texImage2D(glctx.TEXTURE_2D, 0, glctx.RGBA, glctx.RGBA, glctx.UNSIGNED_BYTE, glprops.textures[refreshTextureIndices[c]]);
-            }
+        glprops.textures.initializeNewTextures(glprops.program);
+        glprops.textures.refreshScene();
+        glprops.uniforms.updateProgram(glprops.gl, glprops.program);
 
-            glprops.uniforms.add('u_resolution', ccwc.image.webgl.uniforms.UNIFORM2f, [glctx.canvas.width, glctx.canvas.height]);
-            glprops.uniforms.add('f_resolution', ccwc.image.webgl.uniforms.UNIFORM2f, [glctx.canvas.width, glctx.canvas.height]);
-
-            for (var c = 0; c < refreshTextureIndices.length; c++) {
-                var u_imageLocation = glctx.getUniformLocation(glprops.program, 'u_image' + refreshTextureIndices[c]);
-                glctx.uniform1i(u_imageLocation, refreshTextureIndices[c]);
-                glctx.activeTexture(glctx['TEXTURE' + refreshTextureIndices[c]]);
-                glctx.bindTexture(glctx.TEXTURE_2D, glprops.glTextures[refreshTextureIndices[c]]);
-            }
-
-            glctx.bindBuffer(glctx.ARRAY_BUFFER, rectCoordBuffer);
-            glctx.enableVertexAttribArray(positionLocation);
-            glctx.vertexAttribPointer(positionLocation, 2, glctx.FLOAT, false, 0, 0);
-            glctx.bufferData(glctx.ARRAY_BUFFER, rectCoords, glctx.STATIC_DRAW);
-        } else {
-            for (var c = 0; c < refreshTextureIndices.length; c++) {
-                glctx.bindTexture(glctx.TEXTURE_2D, glprops.glTextures[refreshTextureIndices[c]]);
-                glctx.texSubImage2D(glctx.TEXTURE_2D, 0, 0, 0, glctx.RGBA, glctx.UNSIGNED_BYTE, glprops.textures[refreshTextureIndices[c]]);
-            }
-        }
-
-        glprops.uniforms.updateProgram(glctx, glprops.program);
-        glctx.drawArrays(glctx.TRIANGLES, 0, 6);
+        glprops.gl.drawArrays(glprops.gl.TRIANGLES, 0, 6);
         glprops.isInitialized = true;
 
         return glprops;
@@ -175,25 +148,139 @@ ccwc.image.webgl.filter = {
 };
 ccwc.image.webgl.shaders = {
   "freichen_edge_detection": {
-    "fragment": "precision mediump float; uniform sampler2D u_image; varying vec2 v_texCoord; uniform vec2 f_resolution; vec2 texel = vec2(1.0 / f_resolution.x, 1.0 / f_resolution.y); mat3 G[9];  const mat3 g0 = mat3( 0.3535533845424652, 0, -0.3535533845424652, 0.5, 0, -0.5, 0.3535533845424652, 0, -0.3535533845424652 ); const mat3 g1 = mat3( 0.3535533845424652, 0.5, 0.3535533845424652, 0, 0, 0, -0.3535533845424652, -0.5, -0.3535533845424652 ); const mat3 g2 = mat3( 0, 0.3535533845424652, -0.5, -0.3535533845424652, 0, 0.3535533845424652, 0.5, -0.3535533845424652, 0 ); const mat3 g3 = mat3( 0.5, -0.3535533845424652, 0, -0.3535533845424652, 0, 0.3535533845424652, 0, 0.3535533845424652, -0.5 ); const mat3 g4 = mat3( 0, -0.5, 0, 0.5, 0, 0.5, 0, -0.5, 0 ); const mat3 g5 = mat3( -0.5, 0, 0.5, 0, 0, 0, 0.5, 0, -0.5 ); const mat3 g6 = mat3( 0.1666666716337204, -0.3333333432674408, 0.1666666716337204, -0.3333333432674408, 0.6666666865348816, -0.3333333432674408, 0.1666666716337204, -0.3333333432674408, 0.1666666716337204 ); const mat3 g7 = mat3( -0.3333333432674408, 0.1666666716337204, -0.3333333432674408, 0.1666666716337204, 0.6666666865348816, 0.1666666716337204, -0.3333333432674408, 0.1666666716337204, -0.3333333432674408 ); const mat3 g8 = mat3( 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408 );  void main(void) {      G[0] = g0,     G[1] = g1,     G[2] = g2,     G[3] = g3,     G[4] = g4,     G[5] = g5,     G[6] = g6,     G[7] = g7,     G[8] = g8;      mat3 I;     float cnv[9];     vec3 sampl;      for (float i=0.0; i<3.0; i++) {         for (float j=0.0; j<3.0; j++) {             sampl = texture2D(u_image, v_texCoord + texel * vec2(i-1.0,j-1.0) ).rgb;             I[int(i)][int(j)] = length(sampl);         }     }      for (int i=0; i<9; i++) {         float dp3 = dot(G[i][0], I[0]) + dot(G[i][1], I[1]) + dot(G[i][2], I[2]);         cnv[i] = dp3 * dp3;     }      float M = (cnv[0] + cnv[1]) + (cnv[2] + cnv[3]);     float S = (cnv[4] + cnv[5]) + (cnv[6] + cnv[7]) + (cnv[8] + M);      gl_FragColor = vec4(vec3(sqrt(M/S)), texture2D( u_image, v_texCoord ).a ); }",
+    "fragment": "precision mediump float; uniform sampler2D u_image0; varying vec2 v_texCoord; uniform vec2 f_resolution; vec2 texel = vec2(1.0 / f_resolution.x, 1.0 / f_resolution.y); mat3 G[9];  const mat3 g0 = mat3( 0.3535533845424652, 0, -0.3535533845424652, 0.5, 0, -0.5, 0.3535533845424652, 0, -0.3535533845424652 ); const mat3 g1 = mat3( 0.3535533845424652, 0.5, 0.3535533845424652, 0, 0, 0, -0.3535533845424652, -0.5, -0.3535533845424652 ); const mat3 g2 = mat3( 0, 0.3535533845424652, -0.5, -0.3535533845424652, 0, 0.3535533845424652, 0.5, -0.3535533845424652, 0 ); const mat3 g3 = mat3( 0.5, -0.3535533845424652, 0, -0.3535533845424652, 0, 0.3535533845424652, 0, 0.3535533845424652, -0.5 ); const mat3 g4 = mat3( 0, -0.5, 0, 0.5, 0, 0.5, 0, -0.5, 0 ); const mat3 g5 = mat3( -0.5, 0, 0.5, 0, 0, 0, 0.5, 0, -0.5 ); const mat3 g6 = mat3( 0.1666666716337204, -0.3333333432674408, 0.1666666716337204, -0.3333333432674408, 0.6666666865348816, -0.3333333432674408, 0.1666666716337204, -0.3333333432674408, 0.1666666716337204 ); const mat3 g7 = mat3( -0.3333333432674408, 0.1666666716337204, -0.3333333432674408, 0.1666666716337204, 0.6666666865348816, 0.1666666716337204, -0.3333333432674408, 0.1666666716337204, -0.3333333432674408 ); const mat3 g8 = mat3( 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408, 0.3333333432674408 );  void main(void) {      G[0] = g0,     G[1] = g1,     G[2] = g2,     G[3] = g3,     G[4] = g4,     G[5] = g5,     G[6] = g6,     G[7] = g7,     G[8] = g8;      mat3 I;     float cnv[9];     vec3 sampl;      for (float i=0.0; i<3.0; i++) {         for (float j=0.0; j<3.0; j++) {             sampl = texture2D(u_image0, v_texCoord + texel * vec2(i-1.0,j-1.0) ).rgb;             I[int(i)][int(j)] = length(sampl);         }     }      for (int i=0; i<9; i++) {         float dp3 = dot(G[i][0], I[0]) + dot(G[i][1], I[1]) + dot(G[i][2], I[2]);         cnv[i] = dp3 * dp3;     }      float M = (cnv[0] + cnv[1]) + (cnv[2] + cnv[3]);     float S = (cnv[4] + cnv[5]) + (cnv[6] + cnv[7]) + (cnv[8] + M);      gl_FragColor = vec4(vec3(sqrt(M/S)), texture2D( u_image0, v_texCoord ).a ); }",
     "vertex": "attribute vec2 a_position; attribute vec2 a_texCoord; uniform vec2 u_resolution; varying vec2 v_texCoord;  void main() {     vec2 zeroToOne = a_position / u_resolution;     vec2 zeroToTwo = zeroToOne * 2.0;     vec2 clipSpace = zeroToTwo - 1.0;     gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);     v_texCoord = a_texCoord; }"
   },
   "greyscale": {
-    "fragment": "precision mediump float; varying vec2 v_texCoord;  uniform sampler2D u_image;  void main(void) {     vec4 px = texture2D(u_image, v_texCoord);     float avg = (px.r + px.g + px.b)/3.0;     gl_FragColor = vec4(avg, avg, avg, px.a); }",
+    "fragment": "precision mediump float; varying vec2 v_texCoord;  uniform sampler2D u_image0;  void main(void) {     vec4 px = texture2D(u_image0, v_texCoord);     float avg = (px.r + px.g + px.b)/3.0;     gl_FragColor = vec4(avg, avg, avg, px.a); }",
     "vertex": "attribute vec2 a_position; attribute vec2 a_texCoord; uniform vec2 u_resolution; varying vec2 v_texCoord;  void main() {     vec2 zeroToOne = a_position / u_resolution;     vec2 zeroToTwo = zeroToOne * 2.0;     vec2 clipSpace = zeroToTwo - 1.0;     gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);     v_texCoord = a_texCoord; }"
   },
   "passthrough": {
-    "fragment": "precision mediump float; uniform sampler2D u_image; varying vec2 v_texCoord;  void main() {     gl_FragColor = texture2D(u_image, v_texCoord); }",
+    "fragment": "precision mediump float; uniform sampler2D u_image0; varying vec2 v_texCoord;  void main() {     gl_FragColor = texture2D(u_image0, v_texCoord); }",
     "vertex": "attribute vec2 a_position; attribute vec2 a_texCoord; uniform vec2 u_resolution; varying vec2 v_texCoord;  void main() {     vec2 zeroToOne = a_position / u_resolution;     vec2 zeroToTwo = zeroToOne * 2.0;     vec2 clipSpace = zeroToTwo - 1.0;     gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);     v_texCoord = a_texCoord; }"
   },
   "sepia": {
-    "fragment": "precision mediump float; varying vec2 v_texCoord;  uniform sampler2D u_image; uniform vec4 light; uniform vec4 dark; uniform float desat; uniform float toned;  const mat4 coeff = mat4(     0.393, 0.349, 0.272, 1.0,     0.796, 0.686, 0.534, 1.0,     0.189, 0.168, 0.131, 1.0,     0.0, 0.0, 0.0, 1.0 );  void main(void) {     vec4 sourcePixel = texture2D(u_image, v_texCoord);     gl_FragColor = coeff * sourcePixel; }",
+    "fragment": "precision mediump float; varying vec2 v_texCoord;  uniform sampler2D u_image0; uniform vec4 light; uniform vec4 dark; uniform float desat; uniform float toned;  const mat4 coeff = mat4(     0.393, 0.349, 0.272, 1.0,     0.796, 0.686, 0.534, 1.0,     0.189, 0.168, 0.131, 1.0,     0.0, 0.0, 0.0, 1.0 );  void main(void) {     vec4 sourcePixel = texture2D(u_image0, v_texCoord);     gl_FragColor = coeff * sourcePixel; }",
     "vertex": "attribute vec2 a_position; attribute vec2 a_texCoord; uniform vec2 u_resolution; varying vec2 v_texCoord;  void main() {     vec2 zeroToOne = a_position / u_resolution;     vec2 zeroToTwo = zeroToOne * 2.0;     vec2 clipSpace = zeroToTwo - 1.0;     gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);     v_texCoord = a_texCoord; }"
   },
   "sobel_edge_detection": {
-    "fragment": "precision mediump float; varying vec2 v_texCoord; uniform sampler2D u_image; uniform vec2 f_resolution;  void main(void) {     float x = 1.0 / f_resolution.x;     float y = 1.0 / f_resolution.y;     vec4 horizEdge = vec4( 0.0 );     horizEdge -= texture2D( u_image, vec2( v_texCoord.x - x, v_texCoord.y - y ) ) * 1.0;     horizEdge -= texture2D( u_image, vec2( v_texCoord.x - x, v_texCoord.y     ) ) * 2.0;     horizEdge -= texture2D( u_image, vec2( v_texCoord.x - x, v_texCoord.y + y ) ) * 1.0;     horizEdge += texture2D( u_image, vec2( v_texCoord.x + x, v_texCoord.y - y ) ) * 1.0;     horizEdge += texture2D( u_image, vec2( v_texCoord.x + x, v_texCoord.y     ) ) * 2.0;     horizEdge += texture2D( u_image, vec2( v_texCoord.x + x, v_texCoord.y + y ) ) * 1.0;     vec4 vertEdge = vec4( 0.0 );     vertEdge -= texture2D( u_image, vec2( v_texCoord.x - x, v_texCoord.y - y ) ) * 1.0;     vertEdge -= texture2D( u_image, vec2( v_texCoord.x    , v_texCoord.y - y ) ) * 2.0;     vertEdge -= texture2D( u_image, vec2( v_texCoord.x + x, v_texCoord.y - y ) ) * 1.0;     vertEdge += texture2D( u_image, vec2( v_texCoord.x - x, v_texCoord.y + y ) ) * 1.0;     vertEdge += texture2D( u_image, vec2( v_texCoord.x    , v_texCoord.y + y ) ) * 2.0;     vertEdge += texture2D( u_image, vec2( v_texCoord.x + x, v_texCoord.y + y ) ) * 1.0;     vec3 edge = sqrt((horizEdge.rgb * horizEdge.rgb) + (vertEdge.rgb * vertEdge.rgb));      gl_FragColor = vec4( edge, texture2D( u_image, v_texCoord ).a ); }",
+    "fragment": "precision mediump float; varying vec2 v_texCoord; uniform sampler2D u_image0; uniform vec2 f_resolution;  void main(void) {     float x = 1.0 / f_resolution.x;     float y = 1.0 / f_resolution.y;     vec4 horizEdge = vec4( 0.0 );     horizEdge -= texture2D( u_image0, vec2( v_texCoord.x - x, v_texCoord.y - y ) ) * 1.0;     horizEdge -= texture2D( u_image0, vec2( v_texCoord.x - x, v_texCoord.y     ) ) * 2.0;     horizEdge -= texture2D( u_image0, vec2( v_texCoord.x - x, v_texCoord.y + y ) ) * 1.0;     horizEdge += texture2D( u_image0, vec2( v_texCoord.x + x, v_texCoord.y - y ) ) * 1.0;     horizEdge += texture2D( u_image0, vec2( v_texCoord.x + x, v_texCoord.y     ) ) * 2.0;     horizEdge += texture2D( u_image0, vec2( v_texCoord.x + x, v_texCoord.y + y ) ) * 1.0;     vec4 vertEdge = vec4( 0.0 );     vertEdge -= texture2D( u_image0, vec2( v_texCoord.x - x, v_texCoord.y - y ) ) * 1.0;     vertEdge -= texture2D( u_image0, vec2( v_texCoord.x    , v_texCoord.y - y ) ) * 2.0;     vertEdge -= texture2D( u_image0, vec2( v_texCoord.x + x, v_texCoord.y - y ) ) * 1.0;     vertEdge += texture2D( u_image0, vec2( v_texCoord.x - x, v_texCoord.y + y ) ) * 1.0;     vertEdge += texture2D( u_image0, vec2( v_texCoord.x    , v_texCoord.y + y ) ) * 2.0;     vertEdge += texture2D( u_image0, vec2( v_texCoord.x + x, v_texCoord.y + y ) ) * 1.0;     vec3 edge = sqrt((horizEdge.rgb * horizEdge.rgb) + (vertEdge.rgb * vertEdge.rgb));      gl_FragColor = vec4( edge, texture2D( u_image0, v_texCoord ).a ); }",
     "vertex": "attribute vec2 a_position; attribute vec2 a_texCoord; uniform vec2 u_resolution; varying vec2 v_texCoord;  void main() {     vec2 zeroToOne = a_position / u_resolution;     vec2 zeroToTwo = zeroToOne * 2.0;     vec2 clipSpace = zeroToTwo - 1.0;     gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);     v_texCoord = a_texCoord; }"
   }
+};
+if (!window.ccwc) { ccwc = {}; }
+if (!window.ccwc.image) { ccwc.image = {}; }
+if (!window.ccwc.image) { ccwc.image = {}; }
+if (!window.ccwc.image.webgl) { ccwc.image.webgl = {}; }
+
+ccwc.image.webgl.textures = function(gl, width, height) {
+
+    /** internal texture array */
+    this._textures = {};
+
+    /** width */
+    this.width = width;
+
+    /** height */
+    this.height = height;
+
+    /** gl context */
+    this.gl = gl;
+
+    /** uninitialized textures */
+    this._unitialized = [];
+
+    /** dirty textures (needs updating) */
+    this._dirty = [];
+
+    /** texture indices */
+    this.textureIndices = [];
+
+    /**
+     * add a texture
+     * @param {String} name
+     * @param {Object} texture
+     * @param {Integer} glindex
+     * @param {Array} pixelstore
+     */
+    this.add = function(name, texture, glindex, pixelstore) {
+        if (!glindex) {
+            glindex = 0;
+            while (this.textureIndices.indexOf(glindex) !== -1) {
+                glindex ++;
+            }
+        }
+
+        if (!pixelstore) {
+            pixelstore = [];
+        }
+        this.textureIndices.push(glindex);
+
+        this._textures[name] = {
+            name: name,
+            glindex: glindex,
+            texture: texture,
+            gltexture: gl.createTexture(),
+            initialized: false,
+            pixelStore: pixelstore,
+            dirty: true };
+
+        this._unitialized.push(this._textures[name]);
+    };
+
+    /**
+     * update a uniform
+     * @param name name of texture
+     * @param texture
+     */
+    this.update = function(name, texture) {
+        if (texture) {
+            this._textures[name].texture = texture;
+        }
+        this._textures[name].dirty = true;
+        this._dirty.push(this._textures[name]);
+    };
+
+    /**
+     * refresh scene with updated textures
+     */
+    this.refreshScene = function() {
+        for (var c = 0; c < this._dirty.length; c++) {
+            this.gl.activeTexture(this.gl['TEXTURE' + this._dirty[c].glindex]);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this._dirty[c].gltexture);
+            this.gl.texSubImage2D(this.gl.TEXTURE_2D, 0, 0, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this._dirty[c].texture);
+        }
+        this._dirty = [];
+    };
+
+    /**
+     * initialize new textures
+     * @param program
+     */
+    this.initializeNewTextures = function(program) {
+        if (this._unitialized.length === 0) { return; }
+        var gl = this.gl;
+        for (var c = 0; c < this._unitialized.length; c++) {
+            this._unitialized[c].location = gl.getUniformLocation(program, 'u_image' + this._unitialized[c].glindex);
+            gl.uniform1i(this._unitialized[c].location, this._unitialized[c].glindex);
+            gl.activeTexture(gl['TEXTURE' + this._unitialized[c].glindex]);
+            gl.bindTexture(gl.TEXTURE_2D, this._unitialized[c].gltexture);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+            for (var d = 0; d < this._unitialized[c].pixelStore.length; d++) {
+                gl.pixelStorei(gl[this._unitialized[c].pixelStore[d].property], this._unitialized[c].pixelStore[d].value);
+            }
+
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this._unitialized[c].texture);
+
+            this._unitialized[c].initialized = true;
+            this._unitialized[c].dirty = false;
+        }
+        this._unitialized = [];
+    };
 };
 if (!window.ccwc) { ccwc = {}; }
 if (!window.ccwc.image) { ccwc.image = {}; }
@@ -518,7 +605,7 @@ var CCWCVideo = (function (_HTMLElement) {
             }
 
             if (this._useWebGL) {
-                this.webglProperties.renderer = this.webglProperties.setupHandler.apply(this, [this.webglProperties]);
+                this.webglProperties.renderobj = this.webglProperties.setupHandler.apply(this, [this.webglProperties]);
                 var event = new CustomEvent('webglsetup', { detail: { properties: this.webglProperties } });
                 this.dispatchEvent(event);
             }
@@ -581,8 +668,8 @@ var CCWCVideo = (function (_HTMLElement) {
             }
             if (!noredraw) {
                 if (this._useWebGL) {
-                    //console.log(this.webglProperties.renderer)
-                    this.webglProperties.renderHandler(this.webglProperties.renderer);
+                    this.webglProperties.renderobj.textures.update('video');
+                    this.webglProperties.renderHandler(this.webglProperties.renderobj);
                 } else {
                     this.canvasctx.drawImage(this.videoElement, 0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
 
@@ -607,7 +694,7 @@ var CCWCVideo = (function (_HTMLElement) {
                 case 'imagedata':
                     if (!filtered) {
                         if (this._useWebGL) {
-                            data = ccwc.image.webgl.filter.getCanvasPixels(this.webglProperties.renderer);
+                            data = ccwc.image.webgl.filter.getCanvasPixels(this.webglProperties.renderobj);
                         } else {
                             data = this.canvasctx.getImageData(0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
                         }
@@ -722,7 +809,7 @@ var CCWCVideo = (function (_HTMLElement) {
         /**
          * setup handler for WebGL Scene
          * @param {Object} props webgl properties
-         * @return renderer instance
+         * @return renderobj
          */
         value: function webglSetupHandler(props) {
             var filter;
@@ -731,23 +818,33 @@ var CCWCVideo = (function (_HTMLElement) {
             } else {
                 filter = ccwc.image.webgl.filter.createFilterFromName(props.filter, props.filterLibrary);
             }
-            props.textures.unshift(this.videoElement);
+
+            props.textures.push({
+                name: 'video',
+                texture: document.querySelector('ccwc-video').videoElement,
+                pixelStore: [{ property: 'UNPACK_FLIP_Y_WEBGL', value: this.webglProperties.flipTextureY }],
+                index: 0 });
+
+            return ccwc.image.webgl.filter.createRenderObject({
+                gl: this.canvasctx,
+                filter: filter,
+                textures: props.textures
+            });
             // texture comes in upside down. We can flip it according to this boolean
             // the cost is that the texture is now flipped on the display, but flipCanvas (if true) will flip accordingly
-            console.log(props.textures);
-            var renderer = ccwc.image.webgl.filter.createRenderProps(this.canvasctx, filter, props.textures, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
-            renderer.flipTexture = props.flipTexture;
-            return renderer;
+            // var renderer = ccwc.image.webgl.filter.createRenderProps(this.canvasctx, filter, props.textures, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+            // renderer.flipTexture = props.flipTexture;
+            //return renderobj;
         }
     }, {
         key: 'webglRenderHandler',
 
         /**
          * render handler for WebGL Scene
-         * @param renderer WebGL render properties
+         * @param renderobj WebGL render properties
          */
-        value: function webglRenderHandler(renderer) {
-            ccwc.image.webgl.filter.render(renderer, [0, 1]);
+        value: function webglRenderHandler(renderobj) {
+            ccwc.image.webgl.filter.render(renderobj);
         }
     }, {
         key: 'parseAttributes',
@@ -785,20 +882,22 @@ var CCWCVideo = (function (_HTMLElement) {
                 this.canvasScale = parseFloat(this.getAttribute('canvasScale'));
             }
 
-            if (this.hasAttribute('usewebgl') || this.hasAttribute('useWebGL')) {
+            if (this.hasAttribute('useWebGL')) {
                 this._useWebGL = true;
-            }
-
-            if (this.hasAttribute('glfilter')) {
-                this.webglProperties.filter = this.getAttribute('glFilter');
+                var props = this.getAttribute('useWebGL');
+                if (props) {
+                    props = JSON.parse(props);
+                    if (props.flipTextureY) {
+                        this.webglProperties.flipTextureY = props.flipTextureY;
+                    }
+                    if (props.filter) {
+                        this.webglProperties.filter = props.filter;
+                    }
+                }
             }
 
             if (this.hasAttribute('flipCanvas')) {
                 this._flipCanvas = true;
-            }
-
-            if (this.hasAttribute('glFlipTexture')) {
-                this.webglProperties.flipTexture = true;
             }
 
             if (this.canvasRefreshInterval === 0 && this.useCanvasForDisplay) {
@@ -815,7 +914,7 @@ var CCWCVideo = (function (_HTMLElement) {
          */
         value: function createdCallback() {
             this.webglProperties = {
-                flipTexture: false,
+                flipTextureY: false,
                 filterLibrary: ccwc.image.webgl.shaders,
                 setupHandler: this.webglSetupHandler,
                 renderHandler: this.webglRenderHandler,

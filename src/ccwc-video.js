@@ -233,7 +233,7 @@ var CCWCVideo = (function (_HTMLElement) {
             }
 
             if (this._useWebGL) {
-                this.webglProperties.renderer = this.webglProperties.setupHandler.apply(this, [this.webglProperties]);
+                this.webglProperties.renderobj = this.webglProperties.setupHandler.apply(this, [this.webglProperties]);
                 var event = new CustomEvent('webglsetup', { detail: { properties: this.webglProperties } });
                 this.dispatchEvent(event);
             }
@@ -296,8 +296,8 @@ var CCWCVideo = (function (_HTMLElement) {
             }
             if (!noredraw) {
                 if (this._useWebGL) {
-                    //console.log(this.webglProperties.renderer)
-                    this.webglProperties.renderHandler(this.webglProperties.renderer);
+                    this.webglProperties.renderobj.textures.update('video');
+                    this.webglProperties.renderHandler(this.webglProperties.renderobj);
                 } else {
                     this.canvasctx.drawImage(this.videoElement, 0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
 
@@ -322,7 +322,7 @@ var CCWCVideo = (function (_HTMLElement) {
                 case 'imagedata':
                     if (!filtered) {
                         if (this._useWebGL) {
-                            data = ccwc.image.webgl.filter.getCanvasPixels(this.webglProperties.renderer);
+                            data = ccwc.image.webgl.filter.getCanvasPixels(this.webglProperties.renderobj);
                         } else {
                             data = this.canvasctx.getImageData(0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
                         }
@@ -437,7 +437,7 @@ var CCWCVideo = (function (_HTMLElement) {
         /**
          * setup handler for WebGL Scene
          * @param {Object} props webgl properties
-         * @return renderer instance
+         * @return renderobj
          */
         value: function webglSetupHandler(props) {
             var filter;
@@ -446,23 +446,33 @@ var CCWCVideo = (function (_HTMLElement) {
             } else {
                 filter = ccwc.image.webgl.filter.createFilterFromName(props.filter, props.filterLibrary);
             }
-            props.textures.unshift(this.videoElement);
+
+            props.textures.push({
+                name: 'video',
+                texture: document.querySelector('ccwc-video').videoElement,
+                pixelStore: [{ property: 'UNPACK_FLIP_Y_WEBGL', value: this.webglProperties.flipTextureY }],
+                index: 0 });
+
+            return ccwc.image.webgl.filter.createRenderObject({
+                gl: this.canvasctx,
+                filter: filter,
+                textures: props.textures
+            });
             // texture comes in upside down. We can flip it according to this boolean
             // the cost is that the texture is now flipped on the display, but flipCanvas (if true) will flip accordingly
-            console.log(props.textures);
-            var renderer = ccwc.image.webgl.filter.createRenderProps(this.canvasctx, filter, props.textures, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
-            renderer.flipTexture = props.flipTexture;
-            return renderer;
+            // var renderer = ccwc.image.webgl.filter.createRenderProps(this.canvasctx, filter, props.textures, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+            // renderer.flipTexture = props.flipTexture;
+            //return renderobj;
         }
     }, {
         key: 'webglRenderHandler',
 
         /**
          * render handler for WebGL Scene
-         * @param renderer WebGL render properties
+         * @param renderobj WebGL render properties
          */
-        value: function webglRenderHandler(renderer) {
-            ccwc.image.webgl.filter.render(renderer, [0, 1]);
+        value: function webglRenderHandler(renderobj) {
+            ccwc.image.webgl.filter.render(renderobj);
         }
     }, {
         key: 'parseAttributes',
@@ -500,20 +510,22 @@ var CCWCVideo = (function (_HTMLElement) {
                 this.canvasScale = parseFloat(this.getAttribute('canvasScale'));
             }
 
-            if (this.hasAttribute('usewebgl') || this.hasAttribute('useWebGL')) {
+            if (this.hasAttribute('useWebGL')) {
                 this._useWebGL = true;
-            }
-
-            if (this.hasAttribute('glfilter')) {
-                this.webglProperties.filter = this.getAttribute('glFilter');
+                var props = this.getAttribute('useWebGL');
+                if (props) {
+                    props = JSON.parse(props);
+                    if (props.flipTextureY) {
+                        this.webglProperties.flipTextureY = props.flipTextureY;
+                    }
+                    if (props.filter) {
+                        this.webglProperties.filter = props.filter;
+                    }
+                }
             }
 
             if (this.hasAttribute('flipCanvas')) {
                 this._flipCanvas = true;
-            }
-
-            if (this.hasAttribute('glFlipTexture')) {
-                this.webglProperties.flipTexture = true;
             }
 
             if (this.canvasRefreshInterval === 0 && this.useCanvasForDisplay) {
@@ -530,7 +542,7 @@ var CCWCVideo = (function (_HTMLElement) {
          */
         value: function createdCallback() {
             this.webglProperties = {
-                flipTexture: false,
+                flipTextureY: false,
                 filterLibrary: ccwc.image.webgl.shaders,
                 setupHandler: this.webglSetupHandler,
                 renderHandler: this.webglRenderHandler,
