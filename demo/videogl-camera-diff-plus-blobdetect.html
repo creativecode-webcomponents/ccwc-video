@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>Demo: Take a snapshot and diff the Camera feed against it</title>
+    <link rel="import" href="../ccwc-glvideo.html">
+    <script src="../node_modules/ccwc-image-utils/ccwc-image-utils-canvas.js"></script>
+
+    <script id="2d-fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform sampler2D u_image0;
+        uniform sampler2D u_image1;
+        uniform float u_tolerance;
+        varying vec2 v_texCoord;
+
+        void main() {
+           vec4 color0 = texture2D(u_image0, v_texCoord);
+           vec4 color1 = texture2D(u_image1, v_texCoord);
+           float avg0 = (color0[0] + color0[1] + color0[2])/3.0;
+           float avg1 = (color1[0] + color1[1] + color1[2])/3.0;
+
+           if (abs(avg1 - avg0) > u_tolerance) {
+                gl_FragColor = vec4(0.0, 0.0, 0.0, 255.0);
+           } else {
+                gl_FragColor = vec4(255.0, 255.0, 255.0, 255.0);
+           }
+        }
+    </script>
+
+    <style>
+        ccwc-video {
+            width: 240px;
+            height: 180px;
+        }
+    </style>
+
+
+</head>
+
+<body>
+    <h2>Demo: Find and Display Blobs from a WebGL Difference Filter</h2>
+
+    <input type="range" value="50" min="0" max="100" step="1" id="tolerance" oninput="onSliderChange(event)">
+
+    <ccwc-video
+            src="0"
+            useCamera
+            useWebGL='{"flipTextureY": true}'
+            useCanvasForDisplay
+            flipCanvas
+            frameDataMode="imagedata"
+            canvasRefreshInterval="50">
+    </ccwc-video>
+
+    <canvas></canvas>
+
+    <button onclick="captureStill()">Capture Still</button>
+
+    <script>
+        var video = document.querySelector('ccwc-video');
+        var ctx = document.querySelector('canvas').getContext('2d');
+        video.webglProperties.vertexShader = ccwc.image.webgl.shaders.passthrough.vertex;
+        video.webglProperties.fragmentShader = document.getElementById('2d-fragment-shader').text;
+
+        video.addEventListener('webglsetup', function(event) {
+            event.detail.properties.renderobj.uniforms.add('u_tolerance', ccwc.image.webgl.uniforms.UNIFORM1f, [0.5]);
+            event.detail.properties.renderobj.textures.add('capture', video.videoElement);
+        });
+
+        video.addEventListener('frameupdate', function(event) {
+            ctx.canvas.width = event.detail.videoWidth;
+            ctx.canvas.height = event.detail.videoHeight;
+            var blobs = ccwc.image.canvas.findBlobs((event.detail.framedata), {paint: true});
+            ctx.putImageData(blobs.image, 0, 0);
+        });
+
+        function onSliderChange(event) {
+            video.webglProperties.renderobj.uniforms.update('u_tolerance', [ event.target.value/100]);
+        }
+
+        function captureStill() {
+            video.webglProperties.renderobj.textures.update('capture');
+        }
+    </script>
+</body>
+</html>
