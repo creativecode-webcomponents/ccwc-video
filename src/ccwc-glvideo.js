@@ -830,11 +830,6 @@ var CCWCVideo = (function (_HTMLElement) {
                 filter: filter,
                 textures: props.textures
             });
-            // texture comes in upside down. We can flip it according to this boolean
-            // the cost is that the texture is now flipped on the display, but flipCanvas (if true) will flip accordingly
-            // var renderer = ccwc.image.webgl.filter.createRenderProps(this.canvasctx, filter, props.textures, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
-            // renderer.flipTexture = props.flipTexture;
-            //return renderobj;
         }
     }, {
         key: 'webglRenderHandler',

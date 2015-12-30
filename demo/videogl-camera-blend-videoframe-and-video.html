@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>Demo: Take a snapshot and diff the Camera feed against it</title>
+    <link rel="import" href="../ccwc-glvideo.html">
+
+    <script id="2d-fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform sampler2D u_image0;
+        uniform sampler2D u_image1;
+        uniform sampler2D u_image2;
+        uniform vec2 u_weight;
+        varying vec2 v_texCoord;
+
+        void main() {
+           vec4 color0 = texture2D(u_image0, v_texCoord);
+           vec4 color1 = texture2D(u_image1, v_texCoord);
+           vec4 color2 = texture2D(u_image1, v_texCoord);
+           gl_FragColor = color0 * u_weight[0] + color1 * u_weight[1];
+        }
+    </script>
+
+    <style>
+        ccwc-video {
+            width: 640px;
+            height: 480px;
+        }
+    </style>
+
+
+</head>
+
+<body>
+    <h2>Demo: Blend the Camera feed against a texture</h2>
+
+    <input type="range" value="50" min="0" max="100" step="1" id="tolerance" oninput="onSliderChange(event)">
+
+    <ccwc-video
+            src="0"
+            useCamera
+            useWebGL
+            useCanvasForDisplay
+            canvasRefreshInterval="100">
+    </ccwc-video>
+
+    <button onclick="captureStill()">Capture Still</button>
+
+    <script>
+        var video = document.querySelector('ccwc-video');
+        video.webglProperties.vertexShader = ccwc.image.webgl.shaders.passthrough.vertex;
+        video.webglProperties.fragmentShader = document.getElementById('2d-fragment-shader').text;
+
+        video.addEventListener('webglsetup', function(event) {
+            event.detail.properties.renderobj.uniforms.add('u_weight', ccwc.image.webgl.uniforms.UNIFORM2f, [0.5, 0.5]);
+            event.detail.properties.renderobj.textures.add('capture', video.videoElement);
+        });
+
+        function onSliderChange(event) {
+            video.webglProperties.renderobj.uniforms.update('u_weight', [ event.target.value/100, 1- event.target.value/100]);
+        }
+
+        function captureStill() {
+            video.webglProperties.renderobj.textures.update('capture');
+        }
+    </script>
+</body>
+</html>
