@@ -1,17 +1,48 @@
 var gulp = require('gulp');
 var sourcemaps = require('gulp-sourcemaps');
-var babel = require('gulp-babel');
 var concat = require('gulp-concat');
 var esdoc = require('gulp-esdoc');
 var ghPages = require('gulp-gh-pages');
 var runSequence = require('gulp-run-sequence');
 
-gulp.task('build', function () {
-    return gulp.src('src/ccwc-video.es6')
-        .pipe(sourcemaps.init())
-        .pipe(babel())
-        .pipe(concat('ccwc-video.js'))
-        .pipe(sourcemaps.write('.'))
+
+var browserify = require('browserify');
+var babelify = require('babelify');
+var source = require('vinyl-source-stream');
+
+gulp.task('test', function () {
+    return browserify({
+        entries: 'src/classb.es6',
+        standalone: 'testclass',
+        extensions: ['es2015'], debug: true})
+        .transform(babelify)
+        .bundle()
+        .pipe(source('testclass.js'))
+        .pipe(gulp.dest('./src'));
+});
+
+
+
+gulp.task('ccwc-video', function () {
+    return browserify({
+        entries: 'src/ccwc-video.es6',
+        standalone: 'CCWCVideo',
+        extensions: ['es2015'], debug: true})
+        .transform(babelify)
+        .bundle()
+        .pipe(source('ccwc-video.js'))
+        .pipe(gulp.dest('./src'));
+});
+
+
+gulp.task('ccwc-glvideo', function () {
+    return browserify({
+        entries: 'src/ccwc-glvideo.es6',
+        standalone: 'CCWCGLVideo',
+        extensions: ['es2015'], debug: true})
+        .transform(babelify)
+        .bundle()
+        .pipe(source('ccwc-glvideo.js'))
         .pipe(gulp.dest('./src'));
 });
 

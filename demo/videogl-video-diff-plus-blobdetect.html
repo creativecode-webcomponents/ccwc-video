@@ -4,7 +4,7 @@
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
     <title>Demo: Take a snapshot and diff the Camera feed against it</title>
     <link rel="import" href="../ccwc-glvideo.html">
-    <script src="../node_modules/ccwc-image-utils/ccwc-image-utils-canvas.js"></script>
+    <script src="../node_modules/ccwc-image-utils/image.js"></script>
 
     <script id="2d-fragment-shader" type="x-shader/x-fragment">
         precision mediump float;
@@ -43,7 +43,7 @@
     <input type="range" value="50" min="0" max="100" step="1" id="tolerance" oninput="onSliderChange(event)">
 
     <ccwc-video
-            src="videos/FroggerHighway.mp4"
+            src="SampleVideo_360x240_1mb.mp4"
             useWebGL='{"flipTextureY": true}'
             useCanvasForDisplay
             flipCanvas
@@ -62,14 +62,14 @@
         video.webglProperties.fragmentShader = document.getElementById('2d-fragment-shader').text;
 
         video.addEventListener('webglsetup', function(event) {
-            event.detail.properties.renderobj.uniforms.add('u_tolerance', ccwc.image.webgl.uniforms.UNIFORM1f, [0.5]);
+            event.detail.properties.renderobj.uniforms.add('u_tolerance', ccwc.image.webgl.constants.uniforms.UNIFORM1f, [0.5]);
             event.detail.properties.renderobj.textures.add('capture', video.videoElement);
         });
 
         video.addEventListener('frameupdate', function(event) {
             ctx.canvas.width = event.detail.videoWidth;
             ctx.canvas.height = event.detail.videoHeight;
-            var blobs = ccwc.image.canvas.findBlobs((event.detail.framedata), {paint: true});
+            var blobs = ccwc.image.canvas.blobs.findBlobs((event.detail.framedata), {paint: true});
             ctx.putImageData(blobs.image, 0, 0);
         });
 

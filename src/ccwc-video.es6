@@ -2,7 +2,7 @@
  * CCWCVideo supports both video files and camera feeds
  * Blit your video to a canvas, get frame data, scale the frame/canvas output, and render video to an external canvas of your choosing
  */
-class CCWCVideo extends HTMLElement {
+export default class extends HTMLElement {
 
     /**
      * initialize default class properties
@@ -21,7 +21,7 @@ class CCWCVideo extends HTMLElement {
          * @type {boolean}
          * @private
          */
-        this._useWebGL = false;
+        //this._useWebGL = false;
 
         /**
          * use camera
@@ -86,7 +86,7 @@ class CCWCVideo extends HTMLElement {
          * @type {Boolean}
          * @default false
          */
-        this._flipCanvas = false;
+        //this._flipCanvas = false;
 
         /**
          * refresh interval when using the canvas for display
@@ -210,12 +210,12 @@ class CCWCVideo extends HTMLElement {
             this.canvasctx = this.canvasElement.getContext(ctxstring);
         }
 
-        if (this._useWebGL) {
+        /*if (this._useWebGL) {
             this.webglProperties.renderobj = this.webglProperties.setupHandler.apply(this, [this.webglProperties]);
             var event = new CustomEvent('webglsetup', { detail: { properties: this.webglProperties } });
             this.dispatchEvent(event);
 
-        }
+        }*/
     }
 
     /**
@@ -336,11 +336,11 @@ class CCWCVideo extends HTMLElement {
         }
 
         switch (mode) {
-            case 'binary':
+            /*case 'binary':
                 var base64Data = data.replace('data:image/png;base64', '');
                 var binaryData = new Buffer(base64Data, 'base64');
                 data = binaryData;
-                break;
+                break;*/
 
             case 'imagedataurl':
                 data = this.canvasElement.toDataURL('image/png');
@@ -348,11 +348,11 @@ class CCWCVideo extends HTMLElement {
 
             case 'imagedata':
                 if (!filtered) {
-                    if (this._useWebGL) {
-                        data = ccwc.image.webgl.filter.getCanvasPixels(this.webglProperties.renderobj);
-                    } else {
+                    //if (this._useWebGL) {
+                      //  data = ccwc.image.webgl.filter.getCanvasPixels(this.webglProperties.renderobj);
+                    //} else {
                         data = this.canvasctx.getImageData(0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
-                    }
+                    //}
                 } else {
                     // save some CPU cycles if we already did this
                     data = filtered;
@@ -429,24 +429,11 @@ class CCWCVideo extends HTMLElement {
     };
 
     /**
-     * save current frame to file
-     * @param {String} path file path
-     */
-    saveCurrentFrameToFile(path) {
-        var fs = require('fs');
-        if (!fs) {
-            throw new Error('This method uses Node.js functionality, and you are not running within Node.js');
-        }
-        var data = this.getCurrentFrameData().toString('binary');
-        fs.writeFileSync(path, data, 'binary');
-    };
-
-    /**
      * setup handler for WebGL Scene
      * @param {Object} props webgl properties
      * @return renderobj
      */
-    webglSetupHandler(props) {
+    /*webglSetupHandler(props) {
         var filter;
         if (props.vertexShader && props.fragmentShader) {
             filter = ccwc.image.webgl.filter.createFilterFromShaders(props.vertexShader, props.fragmentShader)
@@ -465,15 +452,15 @@ class CCWCVideo extends HTMLElement {
             filter: filter,
             textures: props.textures
         });
-    };
+    };*/
 
     /**
      * render handler for WebGL Scene
      * @param renderobj WebGL render properties
      */
-    webglRenderHandler(renderobj) {
+    /*webglRenderHandler(renderobj) {
         ccwc.image.webgl.filter.render(renderobj);
-    };
+    };*/
 
     /**
      * parse attributes on element
@@ -508,7 +495,7 @@ class CCWCVideo extends HTMLElement {
             this.canvasScale = parseFloat(this.getAttribute('canvasScale'));
         }
 
-        if (this.hasAttribute('useWebGL')) {
+        /*if (this.hasAttribute('useWebGL')) {
             this._useWebGL = true;
             var props = this.getAttribute('useWebGL');
             if (props) {
@@ -524,7 +511,7 @@ class CCWCVideo extends HTMLElement {
 
         if (this.hasAttribute('flipCanvas')) {
             this._flipCanvas = true;
-        }
+        }*/
 
         if (this.canvasRefreshInterval === 0 && this.useCanvasForDisplay) {
             console.log('Warning: Using canvas for display, but the canvas refresh interval is not set or set to 0. Setting refresh interval to 250ms.');
@@ -537,14 +524,14 @@ class CCWCVideo extends HTMLElement {
      * @private
      */
     createdCallback() {
-        this.webglProperties = {
+        /*this.webglProperties = {
             flipTextureY: false,
             filterLibrary: ccwc.image.webgl.shaders,
             setupHandler: this.webglSetupHandler,
             renderHandler: this.webglRenderHandler,
             filter: 'passthrough',
             textures: []
-        };
+        };*/
 
         this.setProperties();
         this.parseAttributes();
@@ -620,8 +607,4 @@ class CCWCVideo extends HTMLElement {
      * @param {*} newVal new value
      */
     attributeChangedCallback(attr, oldVal, newVal) {};
-
 }
-
-CCWCVideo.prototype.owner = (document._currentScript || document.currentScript).ownerDocument;
-document.registerElement('ccwc-video', CCWCVideo);

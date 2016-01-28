@@ -1,4 +1,9 @@
 <script src="src/ccwc-glvideo.js"></script>
+<script>
+    CCWCGLVideo.default.prototype.owner = (document._currentScript || document.currentScript).ownerDocument;
+    document.registerElement('ccwc-video', CCWCGLVideo.default);
+</script>
+
 <template>
     <style>
         :host {

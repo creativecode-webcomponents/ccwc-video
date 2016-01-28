@@ -4,6 +4,7 @@
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
     <title>Demo: Take a snapshot and diff the Camera feed against it</title>
     <link rel="import" href="../ccwc-glvideo.html">
+    <script src="../node_modules/ccwc-image-utils/webgl.js"></script>
 
     <script id="2d-fragment-shader" type="x-shader/x-fragment">
         precision mediump float;
@@ -52,7 +53,7 @@
         video.webglProperties.fragmentShader = document.getElementById('2d-fragment-shader').text;
 
         video.addEventListener('webglsetup', function(event) {
-            event.detail.properties.renderobj.uniforms.add('u_weight', ccwc.image.webgl.uniforms.UNIFORM2f, [0.5, 0.5]);
+            event.detail.properties.renderobj.uniforms.add('u_weight', ccwc.image.webgl.constants.uniforms.UNIFORM2f, [0.5, 0.5]);
             event.detail.properties.renderobj.textures.add('capture', video.videoElement);
         });
 

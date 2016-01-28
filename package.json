@@ -2,7 +2,8 @@
   "name": "ccwc-video",
   "version": "0.4.0",
   "dependencies": {
-    "webcomponents.js": "^0.7.2"
+    "webcomponents.js": "^0.7.2",
+    "ccwc-image-utils": "git+https://github.com/creativecode-webcomponents/ccwc-image-utils.git"
   },
   "devDependencies": {
     "babel": "^5.8.21",
@@ -12,6 +13,12 @@
     "gulp-esdoc": "^0.1.0",
     "gulp-gh-pages": "^0.5.4",
     "gulp-run-sequence": "^0.3.2",
-    "gulp-sourcemaps": "^1.5.2"
-  }
+    "gulp-sourcemaps": "^1.5.2",
+    "babel-preset-es2015": "^6.0.12",
+    "babelify": "^7.2.0",
+    "browserify": "^13.0.0",
+    "vinyl-buffer": "^1.0.0",
+    "vinyl-source-stream": "^1.1.0"
+  },
+  "browserify": { "transform": [ "babelify" ] }
 }
