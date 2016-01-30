@@ -82,13 +82,6 @@ export default class extends HTMLElement {
         this.canvasFilter = null;
 
         /**
-         * When the texture read (_glReadFlipCorrection) is true, this makes the display go upside down, correct the canvas by inverse scaling in the vertical
-         * @type {Boolean}
-         * @default false
-         */
-        //this._flipCanvas = false;
-
-        /**
          * refresh interval when using the canvas for display
          * @type {int}
          * @default 0 ms
@@ -209,13 +202,6 @@ export default class extends HTMLElement {
         if (!this._canvasOverride) {
             this.canvasctx = this.canvasElement.getContext(ctxstring);
         }
-
-        /*if (this._useWebGL) {
-            this.webglProperties.renderobj = this.webglProperties.setupHandler.apply(this, [this.webglProperties]);
-            var event = new CustomEvent('webglsetup', { detail: { properties: this.webglProperties } });
-            this.dispatchEvent(event);
-
-        }*/
     }
 
     /**
@@ -429,40 +415,6 @@ export default class extends HTMLElement {
     };
 
     /**
-     * setup handler for WebGL Scene
-     * @param {Object} props webgl properties
-     * @return renderobj
-     */
-    /*webglSetupHandler(props) {
-        var filter;
-        if (props.vertexShader && props.fragmentShader) {
-            filter = ccwc.image.webgl.filter.createFilterFromShaders(props.vertexShader, props.fragmentShader)
-        } else {
-            filter = ccwc.image.webgl.filter.createFilterFromName(props.filter, props.filterLibrary);
-        }
-
-        props.textures.push({
-            name: 'video',
-            texture: document.querySelector('ccwc-video').videoElement,
-            pixelStore: [{ property: 'UNPACK_FLIP_Y_WEBGL', value: this.webglProperties.flipTextureY }],
-            index: 0});
-
-        return ccwc.image.webgl.filter.createRenderObject({
-            gl: this.canvasctx,
-            filter: filter,
-            textures: props.textures
-        });
-    };*/
-
-    /**
-     * render handler for WebGL Scene
-     * @param renderobj WebGL render properties
-     */
-    /*webglRenderHandler(renderobj) {
-        ccwc.image.webgl.filter.render(renderobj);
-    };*/
-
-    /**
      * parse attributes on element
      * @private
      */
@@ -495,24 +447,6 @@ export default class extends HTMLElement {
             this.canvasScale = parseFloat(this.getAttribute('canvasScale'));
         }
 
-        /*if (this.hasAttribute('useWebGL')) {
-            this._useWebGL = true;
-            var props = this.getAttribute('useWebGL');
-            if (props) {
-                props = JSON.parse(props);
-                if (props.flipTextureY) {
-                    this.webglProperties.flipTextureY = props.flipTextureY;
-                }
-                if (props.filter) {
-                    this.webglProperties.filter = props.filter;
-                }
-            }
-        }
-
-        if (this.hasAttribute('flipCanvas')) {
-            this._flipCanvas = true;
-        }*/
-
         if (this.canvasRefreshInterval === 0 && this.useCanvasForDisplay) {
             console.log('Warning: Using canvas for display, but the canvas refresh interval is not set or set to 0. Setting refresh interval to 250ms.');
             this.canvasRefreshInterval = 250;
@@ -524,15 +458,6 @@ export default class extends HTMLElement {
      * @private
      */
     createdCallback() {
-        /*this.webglProperties = {
-            flipTextureY: false,
-            filterLibrary: ccwc.image.webgl.shaders,
-            setupHandler: this.webglSetupHandler,
-            renderHandler: this.webglRenderHandler,
-            filter: 'passthrough',
-            textures: []
-        };*/
-
         this.setProperties();
         this.parseAttributes();
     };

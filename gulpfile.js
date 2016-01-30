@@ -1,27 +1,11 @@
 var gulp = require('gulp');
 var sourcemaps = require('gulp-sourcemaps');
-var concat = require('gulp-concat');
+var buffer = require('vinyl-buffer');
 var esdoc = require('gulp-esdoc');
 var ghPages = require('gulp-gh-pages');
-var runSequence = require('gulp-run-sequence');
-
-
 var browserify = require('browserify');
 var babelify = require('babelify');
 var source = require('vinyl-source-stream');
-
-gulp.task('test', function () {
-    return browserify({
-        entries: 'src/classb.es6',
-        standalone: 'testclass',
-        extensions: ['es2015'], debug: true})
-        .transform(babelify)
-        .bundle()
-        .pipe(source('testclass.js'))
-        .pipe(gulp.dest('./src'));
-});
-
-
 
 gulp.task('ccwc-video', function () {
     return browserify({
@@ -31,6 +15,9 @@ gulp.task('ccwc-video', function () {
         .transform(babelify)
         .bundle()
         .pipe(source('ccwc-video.js'))
+        .pipe(buffer())
+        .pipe(sourcemaps.init({loadMaps: true}))
+        .pipe(sourcemaps.write('./'))
         .pipe(gulp.dest('./src'));
 });
 
@@ -43,17 +30,11 @@ gulp.task('ccwc-glvideo', function () {
         .transform(babelify)
         .bundle()
         .pipe(source('ccwc-glvideo.js'))
+        .pipe(buffer())
+        .pipe(sourcemaps.init({loadMaps: true}))
+        .pipe(sourcemaps.write('./'))
         .pipe(gulp.dest('./src'));
 });
-
-gulp.task('glbuild', function () {
-    return gulp.src(['node_modules/ccwc-image-utils/ccwc-image-utils-webgl.js', 'src/ccwc-video.js'])
-        .pipe(concat('ccwc-glvideo.js'))
-        .pipe(sourcemaps.init())
-        .pipe(sourcemaps.write('.'))
-        .pipe(gulp.dest('./src'));
-});
-
 
 gulp.task('deploy', function() {
     return gulp.src(['./**', '!./node_modules/**'])
@@ -71,6 +52,4 @@ gulp.task('doc', function () {
 });
 
 
-gulp.task('default', ['build', 'glbuild', 'doc'], function(cb) {
-    runSequence('build', 'glbuild', 'doc', cb);
-});
+gulp.task('default', ['ccwc-video', 'ccwc-glvideo', 'doc']);
