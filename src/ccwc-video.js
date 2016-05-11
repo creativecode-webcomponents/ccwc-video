@@ -3,6 +3,10 @@
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
 var _createClass = function () {
     function defineProperties(target, props) {
         for (var i = 0; i < props.length; i++) {
@@ -12,10 +16,6 @@ var _createClass = function () {
         if (protoProps) defineProperties(Constructor.prototype, protoProps);if (staticProps) defineProperties(Constructor, staticProps);return Constructor;
     };
 }();
-
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
 
 function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -97,12 +97,6 @@ var _class = function (_HTMLElement) {
             this.videoScaledWidth = 0;
 
             /**
-             * width of scaled video
-             * @type {int}
-             */
-            this.videoScaledWidth = 0;
-
-            /**
              * height of scaled video
              * @type {int}
              */
@@ -128,13 +122,6 @@ var _class = function (_HTMLElement) {
              * @default 0 ms
              */
             this.canvasFilter = null;
-
-            /**
-             * When the texture read (_glReadFlipCorrection) is true, this makes the display go upside down, correct the canvas by inverse scaling in the vertical
-             * @type {Boolean}
-             * @default false
-             */
-            //this._flipCanvas = false;
 
             /**
              * refresh interval when using the canvas for display
@@ -270,12 +257,17 @@ var _class = function (_HTMLElement) {
     }, {
         key: 'onResize',
         value: function onResize() {
+            if (this.offsetWidth === 0 || this.offsetHeight === 0) {
+                return;
+            }
             // set size properties based on component height
             this.width = this.offsetWidth;
             this.height = this.offsetHeight;
 
-            // calculate aspect ratio
-            this.aspectRatio = this.videoElement.videoWidth / this.videoElement.videoHeight;
+            if (this.videoElement.videoWidth > 0 && this.videoElement.videoHeight > 0) {
+                this.aspectRatio = this.videoElement.videoWidth / this.videoElement.videoHeight;
+            }
+
             this.videoScaledWidth = this.width;
             this.videoScaledHeight = this.height;
 
@@ -508,6 +500,9 @@ var _class = function (_HTMLElement) {
             this.root.appendChild(clone);
 
             window.addEventListener('HTMLImportsLoaded', function (e) {
+                _this4.onResize();
+            });
+            window.addEventListener('resize', function (e) {
                 _this4.onResize();
             });
 

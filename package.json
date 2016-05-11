@@ -1,6 +1,6 @@
 {
   "name": "ccwc-video",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "dependencies": {
     "webcomponents.js": "^0.7.2",
     "ccwc-image-utils": "git+https://github.com/creativecode-webcomponents/ccwc-image-utils.git"

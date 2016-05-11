@@ -59,6 +59,7 @@ exports.default = {
         return { vertexShader: vertexShader, fragmentShader: fragmentShader };
     },
 
+
     /**
      * create a filter from filter name
      * @param name
@@ -77,6 +78,7 @@ exports.default = {
         var frg = shaderloc[name].fragment;
         return this.createFilterFromShaders(vtx, frg);
     },
+
 
     /**
      * create object for render
@@ -125,6 +127,7 @@ exports.default = {
 
         return props;
     },
+
 
     /**
      * render WebGL filter on current texture
@@ -180,13 +183,14 @@ exports.default = {
         return glprops;
     },
 
+
     /**
      * read pixels from GL context
      * @param glProps
      */
     getCanvasPixels: function getCanvasPixels(glprops) {
         var glctx = glprops.gl;
-        if (!glprops.pixelarray) {
+        if (!glprops.pixelarray || glctx.canvas.width * glctx.canvas.height * 4 !== glprops.pixelarray.length) {
             glprops.pixelarray = new Uint8Array(glctx.canvas.width * glctx.canvas.height * 4);
         }
         glctx.readPixels(0, 0, glctx.canvas.width, glctx.canvas.height, glctx.RGBA, glctx.UNSIGNED_BYTE, glprops.pixelarray);
@@ -228,11 +232,11 @@ exports.default = {
 },{}],4:[function(require,module,exports){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -277,6 +281,7 @@ var _class = function () {
      * @param {Array} pixelstore
      */
 
+
     _createClass(_class, [{
         key: 'add',
         value: function add(name, texture, glindex, pixelstore) {
@@ -306,6 +311,7 @@ var _class = function () {
     }, {
         key: 'update',
 
+
         /**
          * update a uniform
          * @param name name of texture
@@ -321,6 +327,7 @@ var _class = function () {
     }, {
         key: 'refreshScene',
 
+
         /**
          * refresh scene with updated textures
          */
@@ -334,6 +341,7 @@ var _class = function () {
         }
     }, {
         key: 'initializeNewTextures',
+
 
         /**
          * initialize new textures
@@ -375,11 +383,11 @@ exports.default = _class;
 },{}],5:[function(require,module,exports){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -404,6 +412,7 @@ var _class = function () {
      * @param type type of uniform (1f, 2f, 3f, 4f, 1i, 2i, 3i, 4u
      */
 
+
     _createClass(_class, [{
         key: 'add',
         value: function add(name, type, values) {
@@ -411,6 +420,7 @@ var _class = function () {
         }
     }, {
         key: 'update',
+
 
         /**
          * update a uniform
@@ -422,6 +432,7 @@ var _class = function () {
         }
     }, {
         key: 'updateProgram',
+
 
         /**
          * update uniforms on GL context and program
@@ -480,6 +491,10 @@ exports.default = _class;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
 var _createClass = function () {
     function defineProperties(target, props) {
         for (var i = 0; i < props.length; i++) {
@@ -505,10 +520,6 @@ var _get = function get(object, property, receiver) {
         }return getter.call(receiver);
     }
 };
-
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
 
 var _ccwcVideo = require('./ccwc-video.es6');
 
@@ -578,11 +589,22 @@ var _class = function (_CCWCVideo) {
             this._useWebGL = false;
         }
     }, {
-        key: 'onPlaying',
+        key: 'onResize',
+        value: function onResize() {
+            _get(Object.getPrototypeOf(_class.prototype), 'onResize', this).call(this);
+            if (this._useWebGL && this.webglProperties.renderobj) {
+                this.webglProperties.renderobj.textures.width = this.videoScaledWidth;
+                this.webglProperties.renderobj.textures.height = this.videoScaledHeight;
+                this.canvasctx.viewport(0, 0, this.canvasElement.width, this.canvasElement.height);
+            }
+        }
 
         /**
          * on video playing handler
          */
+
+    }, {
+        key: 'onPlaying',
         value: function onPlaying() {
             _get(Object.getPrototypeOf(_class.prototype), 'onPlaying', this).call(this);
             if (this._useWebGL) {
@@ -742,6 +764,10 @@ exports.default = _class;
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
 var _createClass = function () {
     function defineProperties(target, props) {
         for (var i = 0; i < props.length; i++) {
@@ -751,10 +777,6 @@ var _createClass = function () {
         if (protoProps) defineProperties(Constructor.prototype, protoProps);if (staticProps) defineProperties(Constructor, staticProps);return Constructor;
     };
 }();
-
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
 
 function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -836,12 +858,6 @@ var _class = function (_HTMLElement) {
             this.videoScaledWidth = 0;
 
             /**
-             * width of scaled video
-             * @type {int}
-             */
-            this.videoScaledWidth = 0;
-
-            /**
              * height of scaled video
              * @type {int}
              */
@@ -867,13 +883,6 @@ var _class = function (_HTMLElement) {
              * @default 0 ms
              */
             this.canvasFilter = null;
-
-            /**
-             * When the texture read (_glReadFlipCorrection) is true, this makes the display go upside down, correct the canvas by inverse scaling in the vertical
-             * @type {Boolean}
-             * @default false
-             */
-            //this._flipCanvas = false;
 
             /**
              * refresh interval when using the canvas for display
@@ -1009,12 +1018,17 @@ var _class = function (_HTMLElement) {
     }, {
         key: 'onResize',
         value: function onResize() {
+            if (this.offsetWidth === 0 || this.offsetHeight === 0) {
+                return;
+            }
             // set size properties based on component height
             this.width = this.offsetWidth;
             this.height = this.offsetHeight;
 
-            // calculate aspect ratio
-            this.aspectRatio = this.videoElement.videoWidth / this.videoElement.videoHeight;
+            if (this.videoElement.videoWidth > 0 && this.videoElement.videoHeight > 0) {
+                this.aspectRatio = this.videoElement.videoWidth / this.videoElement.videoHeight;
+            }
+
             this.videoScaledWidth = this.width;
             this.videoScaledHeight = this.height;
 
@@ -1247,6 +1261,9 @@ var _class = function (_HTMLElement) {
             this.root.appendChild(clone);
 
             window.addEventListener('HTMLImportsLoaded', function (e) {
+                _this4.onResize();
+            });
+            window.addEventListener('resize', function (e) {
                 _this4.onResize();
             });
 

@@ -49,12 +49,6 @@ export default class extends HTMLElement {
         this.videoScaledWidth = 0;
 
         /**
-         * width of scaled video
-         * @type {int}
-         */
-        this.videoScaledWidth = 0;
-
-        /**
          * height of scaled video
          * @type {int}
          */
@@ -209,12 +203,17 @@ export default class extends HTMLElement {
      * @private
      */
     onResize() {
+        if (this.offsetWidth === 0 || this.offsetHeight === 0) {
+            return;
+        }
         // set size properties based on component height
         this.width = this.offsetWidth;
         this.height = this.offsetHeight;
 
-        // calculate aspect ratio
-        this.aspectRatio = this.videoElement.videoWidth / this.videoElement.videoHeight;
+        if (this.videoElement.videoWidth > 0 && this.videoElement.videoHeight > 0) {
+            this.aspectRatio = this.videoElement.videoWidth / this.videoElement.videoHeight;
+        }
+
         this.videoScaledWidth = this.width;
         this.videoScaledHeight = this.height;
 
@@ -243,7 +242,6 @@ export default class extends HTMLElement {
         this.canvasElement.style.top = this.letterBoxTop + 'px';
         this.canvasElement.style.left = this.letterBoxLeft + 'px';
     };
-
 
     /**
      * set video source
@@ -472,9 +470,8 @@ export default class extends HTMLElement {
         this.root = this.createShadowRoot();
         this.root.appendChild(clone);
 
-        window.addEventListener('HTMLImportsLoaded', e => {
-            this.onResize();
-        });
+        window.addEventListener('HTMLImportsLoaded', e => { this.onResize(); });
+        window.addEventListener('resize', e => { this.onResize(); });
 
         this.videoElement = this.root.querySelector('#vid');
         this.videoElement.addEventListener('play', e => this.onPlaying(e));

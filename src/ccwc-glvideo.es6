@@ -25,6 +25,15 @@ export default class extends CCWCVideo {
         this._useWebGL = false;
     };
 
+    onResize() {
+        super.onResize();
+        if (this._useWebGL && this.webglProperties.renderobj) {
+            this.webglProperties.renderobj.textures.width = this.videoScaledWidth;
+            this.webglProperties.renderobj.textures.height = this.videoScaledHeight;
+            this.canvasctx.viewport(0, 0, this.canvasElement.width, this.canvasElement.height);
+        }
+    }
+
     /**
      * on video playing handler
      */
