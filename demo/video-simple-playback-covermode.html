@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+        <title>Demo: Simple Playback</title>
+        <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
+        <link rel="import" href="../ccwc-video.html">
+
+        <style>
+            ccwc-video#a {
+                width: 400px;
+                height: 200px;
+            }
+
+            ccwc-video#b {
+                width: 200px;
+                height: 400px;
+            }
+
+            ccwc-video#c {
+                width: 250px;
+                height: 250px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <h2>Demo: Play a video</h2>
+        <p>
+            play a video, fill and crop to allotted space (no letterboxing)
+        </p>
+        <ccwc-video id="a" src="FroggerHighway.mp4" videoScaleMode="cover"></ccwc-video>
+        <ccwc-video id="b" src="FroggerHighway.mp4" videoScaleMode="cover"></ccwc-video>
+        <ccwc-video id="c" src="FroggerHighway.mp4" videoScaleMode="cover"></ccwc-video>
+    </body>
+</html>

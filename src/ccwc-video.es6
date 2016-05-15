@@ -55,6 +55,13 @@ export default class extends HTMLElement {
         this.videoScaledHeight = 0;
 
         /**
+         * how the video is scaled
+         * @type {string}
+         * @default letterbox
+         */
+        this.videoScaleMode = 'contain';
+
+        /**
          * what type of data comes back with frame data event
          * @type {string}
          * @default imagedataurl
@@ -172,6 +179,14 @@ export default class extends HTMLElement {
          * @default 1.0
          */
         this.canvasScale = 1.0;
+
+        /**
+         * visible area bounding box
+         * whether letterboxed or cropped, will report visible video area
+         * does not include positioning in element, so if letterboxing, x and y will be reported as 0
+         * @type {{x: number, y: number, width: number, height: number}}
+         */
+        this.visibleVideoRect = { x: 0, y: 0, width: 0, height: 0 }
     }
 
     /**
@@ -216,20 +231,45 @@ export default class extends HTMLElement {
 
         this.videoScaledWidth = this.width;
         this.videoScaledHeight = this.height;
-
-        // calculate letterbox borders
         var componentAspectRatio = this.width/this.height;
-        if (componentAspectRatio < this.aspectRatio) {
-            this.videoScaledHeight = this.width / this.aspectRatio;
-            this.letterBoxTop = this.height/2 - this.videoScaledHeight/2;
-            this.letterBoxLeft = 0;
-        } else if (componentAspectRatio > this.aspectRatio) {
-            this.videoScaledWidth = this.height * this.aspectRatio;
-            this.letterBoxLeft = this.width/2 - this.videoScaledWidth/2;
-            this.letterBoxTop = 0;
-        } else {
-            this.letterBoxTop = 0;
-            this.letterBoxLeft = 0;
+
+        if (this.videoScaleMode === 'contain') {
+            // calculate letterbox borders
+            if (componentAspectRatio < this.aspectRatio) {
+                this.videoScaledHeight = this.width / this.aspectRatio;
+                this.letterBoxTop = this.height/2 - this.videoScaledHeight/2;
+                this.letterBoxLeft = 0;
+            } else if (componentAspectRatio > this.aspectRatio) {
+                this.videoScaledWidth = this.height * this.aspectRatio;
+                this.letterBoxLeft = this.width/2 - this.videoScaledWidth/2;
+                this.letterBoxTop = 0;
+            } else {
+                this.letterBoxTop = 0;
+                this.letterBoxLeft = 0;
+            }
+
+            this.visibleVideoRect.x = 0;
+            this.visibleVideoRect.y = 0;
+            this.visibleVideoRect.width = this.videoScaledWidth;
+            this.visibleVideoRect.height = this.videoScaledHeight;
+
+        } else if (this.videoScaleMode === 'cover') {
+            if (componentAspectRatio > this.aspectRatio) {
+                this.videoScaledWidth = this.width;
+                this.videoScaledHeight = this.width / this.aspectRatio;
+                this.letterBoxLeft = 0;
+                this.letterBoxTop = -(this.videoScaledHeight/2 - this.height/2);
+            } else {
+                this.videoScaledHeight = this.height;
+                this.videoScaledWidth = this.height * this.aspectRatio;
+                this.letterBoxTop = 0;
+                this.letterBoxLeft = -(this.videoScaledWidth/2 - this.width/2);
+            }
+
+            this.visibleVideoRect.x = -(this.letterBoxLeft);
+            this.visibleVideoRect.y = -(this.letterBoxTop);
+            this.visibleVideoRect.width = this.videoScaledWidth - (this.visibleVideoRect.x *2);
+            this.visibleVideoRect.height = this.videoScaledHeight - (this.visibleVideoRect.y *2);
         }
 
         // set video/canvas to component size
@@ -312,8 +352,15 @@ export default class extends HTMLElement {
                     this.videoScaledHeight * this.canvasScale);
 
                 if (this.canvasFilter) {
-                    filtered = this.canvasctx.getImageData(0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
-                    this.canvasctx.putImageData(this.canvasFilter(filtered), 0, 0, 0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale );
+                    filtered = this.canvasctx.getImageData(
+                        this.visibleVideoRect.x * this.canvasScale,
+                        this.visibleVideoRect.y * this.canvasScale,
+                        this.visibleVideoRect.width * this.canvasScale,
+                        this.visibleVideoRect.height * this.canvasScale);
+                    this.canvasctx.putImageData(this.canvasFilter(filtered),
+                        0, 0, 0, 0,
+                        this.visibleVideoRect.width * this.canvasScale,
+                        this.visibleVideoRect.height * this.canvasScale );
                 }
             }
 
@@ -332,11 +379,11 @@ export default class extends HTMLElement {
 
             case 'imagedata':
                 if (!filtered) {
-                    //if (this._useWebGL) {
-                      //  data = ccwc.image.webgl.filter.getCanvasPixels(this.webglProperties.renderobj);
-                    //} else {
-                        data = this.canvasctx.getImageData(0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
-                    //}
+                    data = this.canvasctx.getImageData(
+                        this.visibleVideoRect.x * this.canvasScale,
+                        this.visibleVideoRect.y * this.canvasScale,
+                        this.visibleVideoRect.width * this.canvasScale,
+                        this.visibleVideoRect.height * this.canvasScale);
                 } else {
                     // save some CPU cycles if we already did this
                     data = filtered;
@@ -445,6 +492,10 @@ export default class extends HTMLElement {
             this.canvasScale = parseFloat(this.getAttribute('canvasScale'));
         }
 
+        if (this.hasAttribute('videoScaleMode')) {
+            this.videoScaleMode = this.getAttribute('videoScaleMode');
+        }
+
         if (this.canvasRefreshInterval === 0 && this.useCanvasForDisplay) {
             console.log('Warning: Using canvas for display, but the canvas refresh interval is not set or set to 0. Setting refresh interval to 250ms.');
             this.canvasRefreshInterval = 250;
@@ -498,6 +549,7 @@ export default class extends HTMLElement {
                 var event = new CustomEvent('frameupdate', { detail: {
                     framedata: this.getCurrentFrameData(),
                     canvascontext: this.canvasctx,
+                    visibleVideoRect: this.visibleVideoRect,
                     videoWidth: this.videoScaledWidth * this.canvasScale,
                     videoHeight: this.videoScaledHeight * this.canvasScale,
                     videoLeft: this.letterBoxLeft * this.canvasScale,
