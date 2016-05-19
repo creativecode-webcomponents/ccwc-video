@@ -122,11 +122,18 @@ export default class extends CCWCVideo {
             pixelStore: [{ property: 'UNPACK_FLIP_Y_WEBGL', value: this.webglProperties.flipTextureY }],
             index: 0});
 
-        return Filters.createRenderObject({
+        console.log(props);
+        var renderObj = {
             gl: this.canvasctx,
             filter: filter,
             textures: props.textures
-        });
+        };
+
+        if (props.textureOffset) {
+            renderObj.textureOffset = props.textureOffset;
+        }
+
+        return Filters.createRenderObject(renderObj);
     };
 
     /**
@@ -153,6 +160,9 @@ export default class extends CCWCVideo {
                 }
                 if (props.filter) {
                     this.webglProperties.filter = props.filter;
+                }
+                if (props.textureOffset) {
+                    this.webglProperties.textureOffset = props.textureOffset;
                 }
             }
         }

@@ -121,6 +121,12 @@ exports.default = {
             }
         }
 
+        if (params.textureOffset) {
+            var offsetPercentX = params.textureOffset.x / props.width;
+            var offsetPercentY = params.textureOffset.y / props.height;
+            props.uniforms.add('offset', _constants2.default.uniforms.UNIFORM2f, [offsetPercentX, offsetPercentY]);
+        }
+
         if (params.autorender) {
             return this.render(props);
         }
@@ -225,7 +231,7 @@ exports.default = {
   },
   "sobel_edge_detection": {
     "fragment": "precision mediump float; varying vec2 v_texCoord; uniform sampler2D u_image0; uniform vec2 f_resolution;  void main(void) {     float x = 1.0 / f_resolution.x;     float y = 1.0 / f_resolution.y;     vec4 horizEdge = vec4( 0.0 );     horizEdge -= texture2D( u_image0, vec2( v_texCoord.x - x, v_texCoord.y - y ) ) * 1.0;     horizEdge -= texture2D( u_image0, vec2( v_texCoord.x - x, v_texCoord.y     ) ) * 2.0;     horizEdge -= texture2D( u_image0, vec2( v_texCoord.x - x, v_texCoord.y + y ) ) * 1.0;     horizEdge += texture2D( u_image0, vec2( v_texCoord.x + x, v_texCoord.y - y ) ) * 1.0;     horizEdge += texture2D( u_image0, vec2( v_texCoord.x + x, v_texCoord.y     ) ) * 2.0;     horizEdge += texture2D( u_image0, vec2( v_texCoord.x + x, v_texCoord.y + y ) ) * 1.0;     vec4 vertEdge = vec4( 0.0 );     vertEdge -= texture2D( u_image0, vec2( v_texCoord.x - x, v_texCoord.y - y ) ) * 1.0;     vertEdge -= texture2D( u_image0, vec2( v_texCoord.x    , v_texCoord.y - y ) ) * 2.0;     vertEdge -= texture2D( u_image0, vec2( v_texCoord.x + x, v_texCoord.y - y ) ) * 1.0;     vertEdge += texture2D( u_image0, vec2( v_texCoord.x - x, v_texCoord.y + y ) ) * 1.0;     vertEdge += texture2D( u_image0, vec2( v_texCoord.x    , v_texCoord.y + y ) ) * 2.0;     vertEdge += texture2D( u_image0, vec2( v_texCoord.x + x, v_texCoord.y + y ) ) * 1.0;     vec3 edge = sqrt((horizEdge.rgb * horizEdge.rgb) + (vertEdge.rgb * vertEdge.rgb));      gl_FragColor = vec4( edge, texture2D( u_image0, v_texCoord ).a ); }",
-    "vertex": "attribute vec2 a_position; attribute vec2 a_texCoord; uniform vec2 u_resolution; varying vec2 v_texCoord;  void main() {     vec2 zeroToOne = a_position / u_resolution;     vec2 zeroToTwo = zeroToOne * 2.0;     vec2 clipSpace = zeroToTwo - 1.0;     gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);     v_texCoord = a_texCoord; }"
+    "vertex": "attribute vec2 a_position; attribute vec2 a_texCoord; uniform vec2 u_resolution; varying vec2 v_texCoord; uniform vec2 offset;  void main() {     vec2 zeroToOne = a_position / u_resolution;     vec2 zeroToTwo = zeroToOne * 2.0;     vec2 clipSpace = zeroToTwo - 1.0 + offset;     gl_Position = vec4(clipSpace.x * 1.0, clipSpace.y * -1.0, 0.0, 1.0);     v_texCoord = a_texCoord; }"
   }
 };
 
@@ -690,11 +696,18 @@ var _class = function (_CCWCVideo) {
                 pixelStore: [{ property: 'UNPACK_FLIP_Y_WEBGL', value: this.webglProperties.flipTextureY }],
                 index: 0 });
 
-            return _filters2.default.createRenderObject({
+            console.log(props);
+            var renderObj = {
                 gl: this.canvasctx,
                 filter: filter,
                 textures: props.textures
-            });
+            };
+
+            if (props.textureOffset) {
+                renderObj.textureOffset = props.textureOffset;
+            }
+
+            return _filters2.default.createRenderObject(renderObj);
         }
     }, {
         key: 'webglRenderHandler',
@@ -725,6 +738,9 @@ var _class = function (_CCWCVideo) {
                     }
                     if (props.filter) {
                         this.webglProperties.filter = props.filter;
+                    }
+                    if (props.textureOffset) {
+                        this.webglProperties.textureOffset = props.textureOffset;
                     }
                 }
             }
@@ -1118,8 +1134,8 @@ var _class = function (_HTMLElement) {
                     this.canvasctx.drawImage(this.videoElement, 0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
 
                     if (this.canvasFilter) {
-                        filtered = this.canvasctx.getImageData(0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
-                        this.canvasctx.putImageData(this.canvasFilter(filtered), 0, 0, 0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+                        filtered = this.canvasctx.getImageData(this.visibleVideoRect.x * this.canvasScale, this.visibleVideoRect.y * this.canvasScale, this.visibleVideoRect.width * this.canvasScale, this.visibleVideoRect.height * this.canvasScale);
+                        this.canvasctx.putImageData(this.canvasFilter(filtered), 0, 0, 0, 0, this.visibleVideoRect.width * this.canvasScale, this.visibleVideoRect.height * this.canvasScale);
                     }
                 }
             }

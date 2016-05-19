@@ -357,8 +357,8 @@ var _class = function (_HTMLElement) {
                     this.canvasctx.drawImage(this.videoElement, 0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
 
                     if (this.canvasFilter) {
-                        filtered = this.canvasctx.getImageData(0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
-                        this.canvasctx.putImageData(this.canvasFilter(filtered), 0, 0, 0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
+                        filtered = this.canvasctx.getImageData(this.visibleVideoRect.x * this.canvasScale, this.visibleVideoRect.y * this.canvasScale, this.visibleVideoRect.width * this.canvasScale, this.visibleVideoRect.height * this.canvasScale);
+                        this.canvasctx.putImageData(this.canvasFilter(filtered), 0, 0, 0, 0, this.visibleVideoRect.width * this.canvasScale, this.visibleVideoRect.height * this.canvasScale);
                     }
                 }
             }
