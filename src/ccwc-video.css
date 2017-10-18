@@ -1,0 +1,17 @@
+ccwc-video,
+ccwc-glvideo {
+    display: inline-block;
+    background-color: black;
+    position: relative;
+    overflow: hidden;
+}
+
+ccwc-video canvas,
+ccwc-glvideo canvas {
+    position: absolute;
+}
+
+ccwc-video #vid,
+ccwc-glvideo #vid {
+    position: absolute;
+}
