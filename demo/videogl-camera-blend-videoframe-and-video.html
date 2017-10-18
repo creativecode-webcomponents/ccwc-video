@@ -3,7 +3,9 @@
 <head>
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
     <title>Demo: Take a snapshot and diff the Camera feed against it</title>
-    <link rel="import" href="../ccwc-glvideo.html">
+    <script src="../src/ccwc-video.js"></script>
+    <script src="../src/ccwc-glvideo.js"></script>
+    <link rel="stylesheet" href="../src/ccwc-video.css">
     <script src="../node_modules/ccwc-image-utils/webgl.js"></script>
 
     <script id="2d-fragment-shader" type="x-shader/x-fragment">
@@ -23,7 +25,7 @@
     </script>
 
     <style>
-        ccwc-video {
+        ccwc-glvideo {
             width: 640px;
             height: 480px;
         }
@@ -37,18 +39,19 @@
 
     <input type="range" value="50" min="0" max="100" step="1" id="tolerance" oninput="onSliderChange(event)">
 
-    <ccwc-video
-            src="0"
+    <ccwc-glvideo
+            shaders="ccwc.image.webgl.shaders"
+            filters="ccwc.image.webgl.filters"
             useCamera
             useWebGL
             useCanvasForDisplay
             canvasRefreshInterval="100">
-    </ccwc-video>
+    </ccwc-glvideo>
 
     <button onclick="captureStill()">Capture Still</button>
 
     <script>
-        var video = document.querySelector('ccwc-video');
+        var video = document.querySelector('ccwc-glvideo');
         video.webglProperties.vertexShader = ccwc.image.webgl.shaders.passthrough.vertex;
         video.webglProperties.fragmentShader = document.getElementById('2d-fragment-shader').text;
 

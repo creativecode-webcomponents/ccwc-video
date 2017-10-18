@@ -4,7 +4,8 @@
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
         <title>Demo: Copy to Canvas</title>
         <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
-        <link rel="import" href="../ccwc-video.html">
+        <script src="../src/ccwc-video.js"></script>
+        <link rel="stylesheet" href="../src/ccwc-video.css">
 
         <style>
             ccwc-video {
@@ -12,6 +13,7 @@
                 height: 250px;
             }
         </style>
+
     </head>
 
     <body>
@@ -20,17 +22,16 @@
             Use the frame data event to trigger drawing to another canvas
         </p>
         <ccwc-video
-                src="0"
                 useCamera
                 canvasRefreshInterval="100"
                 frameDataMode="imagedata">
         </ccwc-video>
 
-        <canvas></canvas>
+        <canvas id="target"></canvas>
     </body>
 
     <script>
-        var ctx = document.querySelector('canvas').getContext('2d');
+        var ctx = document.querySelector('canvas#target').getContext('2d');
         document.querySelector('ccwc-video').addEventListener('frameupdate', function(event) {
             ctx.canvas.width = event.detail.width;
             ctx.canvas.height = event.detail.height;

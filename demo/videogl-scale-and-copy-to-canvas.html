@@ -4,10 +4,13 @@
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
         <title>Demo: Scale and Copy to Canvas</title>
         <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
-        <link rel="import" href="../ccwc-glvideo.html">
+        <script src="../src/ccwc-video.js"></script>
+        <script src="../src/ccwc-glvideo.js"></script>
+        <link rel="stylesheet" href="../src/ccwc-video.css">
+        <script src="../node_modules/ccwc-image-utils/webgl.js"></script>
 
         <style>
-            ccwc-video {
+            ccwc-glvideo {
                 width: 250px;
                 height: 250px;
             }
@@ -25,20 +28,22 @@
             or you can use the glFlipTexture attribute to flip how the texture is drawn. Unfortunately, if you do this, it will flip your main display (if using the canvas
             to render). In that case, either don't useCanvasForDisplay, or use the flipCanvas attribute to use a CSS transform and use scale(1, -1) to account for this texture flip
         </p>
-        <ccwc-video
+        <ccwc-glvideo
                 src="SampleVideo_360x240_1mb.mp4"
                 canvasScale=".5"
+                shaders="ccwc.image.webgl.shaders"
+                filters="ccwc.image.webgl.filters"
                 useWebGL='{"flipTextureY": true}'
                 frameDataMode="imagedata"
                 canvasRefreshInterval="100">
-        </ccwc-video>
+        </ccwc-glvideo>
 
-        <canvas></canvas>
+        <canvas id="target"></canvas>
     </body>
 
     <script>
-        var ctx = document.querySelector('canvas').getContext('2d');
-        document.querySelector('ccwc-video').addEventListener('frameupdate', function(event) {
+        var ctx = document.querySelector('canvas#target').getContext('2d');
+        document.querySelector('ccwc-glvideo').addEventListener('frameupdate', function(event) {
             ctx.putImageData(event.detail.framedata, 0, 0);
         });
     </script>

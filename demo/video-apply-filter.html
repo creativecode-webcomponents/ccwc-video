@@ -5,7 +5,8 @@
     <title>Demo: Apply Filter</title>
     <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
     <script src="../node_modules/ccwc-image-utils/canvas.js"></script>
-    <link rel="import" href="../ccwc-video.html">
+    <script src="../src/ccwc-video.js"></script>
+    <link rel="stylesheet" href="../src/ccwc-video.css">
 
     <style>
         ccwc-video {
@@ -18,7 +19,7 @@
 <body>
 <h2>Demo: Apply Filter</h2>
 <p>
-    Use the frame data event to trigger drawing to another canvas
+    Apply a single filter
 </p>
 <ccwc-video
         src="SampleVideo_360x240_1mb.mp4"
@@ -26,12 +27,11 @@
         canvasRefreshInterval="100">
 </ccwc-video>
 
-<canvas></canvas>
+<canvas id="target"></canvas>
 </body>
 
 <script>
-    var ctx = document.querySelector('canvas').getContext('2d');
-   // document.querySelector('ccwc-video').canvasFilter = ccwc.image.canvas.filters.toGrayscale;
-    document.querySelector('ccwc-video').canvasFilter = ccwc.image.canvas.filters.saturate;
+    document.querySelector('ccwc-video').canvasFilter = ccwc.image.canvas.filters.toGrayscale;
+   // document.querySelector('ccwc-video').canvasFilter = ccwc.image.canvas.filters.saturate;
 </script>
 </html>

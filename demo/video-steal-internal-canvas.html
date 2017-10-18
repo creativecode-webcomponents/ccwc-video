@@ -4,7 +4,8 @@
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
         <title>Demo: Steal Internal Canvas</title>
         <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
-        <link rel="import" href="../ccwc-video.html">
+        <script src="../src/ccwc-video.js"></script>
+        <link rel="stylesheet" href="../src/ccwc-video.css">
 
         <style>
             ccwc-video {
@@ -25,11 +26,11 @@
                 frameDataMode="imagedata">
         </ccwc-video>
 
-        <canvas></canvas>
+        <canvas id="target"></canvas>
     </body>
 
     <script>
-        var mycanvas = document.querySelector('canvas');
+        var mycanvas = document.querySelector('canvas#target');
         var videoplayer = document.querySelector('ccwc-video');
         if (videoplayer.isReady) {
             // size canvas before getting context, otherwise it'll blow up the pixels weird

@@ -4,10 +4,13 @@
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
         <title>Demo: Steal Internal Canvas (WebGL)</title>
         <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
-        <link rel="import" href="../ccwc-glvideo.html">
+        <script src="../src/ccwc-video.js"></script>
+        <script src="../src/ccwc-glvideo.js"></script>
+        <link rel="stylesheet" href="../src/ccwc-video.css">
+        <script src="../node_modules/ccwc-image-utils/webgl.js"></script>
 
         <style>
-            ccwc-video {
+            ccwc-glvideo {
                 width: 250px;
                 height: 250px;
             }
@@ -19,23 +22,25 @@
         <p>
             Instead of multiple canvas drawing, steal the video player's internal canvas context for ourselves outside of the component. Be sure you aren't using "useCanvasForDisplay" or the video element will be hidden
         </p>
-        <ccwc-video
+        <ccwc-glvideo
                 src="SampleVideo_360x240_1mb.mp4"
+                shaders="ccwc.image.webgl.shaders"
+                filters="ccwc.image.webgl.filters"
                 canvasRefreshInterval="100" useWebGL>
-        </ccwc-video>
+        </ccwc-glvideo>
 
-        <canvas></canvas>
+        <canvas id="target"></canvas>
     </body>
 
     <script>
-        var mycanvas = document.querySelector('canvas');
+        var mycanvas = document.querySelector('canvas#target');
         mycanvas.width = 300;
         mycanvas.height = 250;
-        var videoplayer = document.querySelector('ccwc-video');
+        var videoplayer = document.querySelector('ccwc-glvideo');
         if (videoplayer.isReady) {
             videoplayer.canvasContext = mycanvas.getContext('webgl');
         } else {
-            document.querySelector('ccwc-video').addEventListener('ready', function(event) {
+            document.querySelector('ccwc-glvideo').addEventListener('ready', function(event) {
                 videoplayer.canvasContext = mycanvas.getContext('webgl');
             });
         }

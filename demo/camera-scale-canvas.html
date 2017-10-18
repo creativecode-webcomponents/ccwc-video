@@ -4,7 +4,8 @@
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
         <title>Demo: Scale Canvas</title>
         <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
-        <link rel="import" href="../ccwc-video.html">
+        <script src="../src/ccwc-video.js"></script>
+        <link rel="stylesheet" href="../src/ccwc-video.css">
 
         <style>
             ccwc-video {
@@ -20,13 +21,11 @@
             Use the internal canvas for display, but also scale. Kinda looks bad and useless, but scaling the canvas could be a useful feature elsewhere
         </p>
         <ccwc-video
-                src="0" useCamera
+                useCamera
                 canvasScale=".5"
                 useCanvasForDisplay
                 frameDataMode="imagedata"
                 canvasRefreshInterval="100">
         </ccwc-video>
-
-        <canvas></canvas>
     </body>
 </html>
