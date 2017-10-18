@@ -751,8 +751,18 @@ class CCWCGLVideo extends CCWCVideo {
      * @private
      */
     connectedCallback() {
-        let Shaders = eval(this.getAttribute('shaders'));
-        this.Filters = eval(this.getAttribute('filters'));
+        let Shaders;
+        if (this.getAttribute('shaders')) {
+            Shaders = eval(this.getAttribute('shaders'));
+        } else {
+            Shaders = ccwc.image.webgl.shaders;
+        }
+
+        if (this.getAttribute('filters')) {
+            this.Filters = eval(this.getAttribute('filters'));
+        } else {
+            this.Filters = ccwc.image.webgl.filters;
+        }
         this.webglProperties = {
             flipTextureY: false,
             filterLibrary: Shaders,
