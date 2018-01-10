@@ -1,12 +1,8 @@
 {
   "name": "ccwc-video",
-  "version": "0.6.0",
-  "dependencies": {
-  },
+  "version": "0.7.0",
+  "dependencies": {},
   "devDependencies": {
-    "gulp": "^3.9.0",
-    "gulp-concat": "^2.6.1",
-    "webcomponents.js": "^0.7.2",
     "ccwc-image-utils": "git+https://github.com/creativecode-webcomponents/ccwc-image-utils.git"
   }
 }

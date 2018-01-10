@@ -3,9 +3,7 @@
     <head>
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
         <title>Demo: Copy to Canvas</title>
-        <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
-        <script src="../src/ccwc-video.js"></script>
-        <link rel="stylesheet" href="../src/ccwc-video.css">
+        <script type="module" src="../ccwc-video.js"></script>
 
         <style>
             ccwc-video {
@@ -21,7 +19,7 @@
             Use the frame data event to trigger drawing to another canvas in "cover mode"
         </p>
         <ccwc-video
-                src="FroggerHighway.mp4"
+                src="SampleVideo_360x240_1mb.mp4"
                 videoScaleMode="cover"
                 canvasRefreshInterval="100"
                 frameDataMode="imagedata">

@@ -2,12 +2,8 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
-    <title>Demo: Copy to Canvas</title>
-    <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
-    <script src="../node_modules/ccwc-image-utils/canvas.js"></script>
-
-    <script src="../src/ccwc-video.js"></script>
-    <link rel="import" href="../src/ccwc-video.css">
+    <title>Demo: Chained Filter</title>
+    <script type="module" src="../ccwc-video.js"></script>
 
     <style>
         ccwc-video {
@@ -27,11 +23,12 @@
 <canvas></canvas>
 </body>
 
-<script>
+<script type="module">
+    import FilterChain from '../node_modules/ccwc-image-utils/src/canvas/FilterChain.js';
+
     var ctx = document.querySelector('canvas').getContext('2d');
-    var filter = new ccwc.image.canvas.filterchain();
     document.querySelector('ccwc-video').canvasFilter = function(imgdata) {
-        return new ccwc.image.canvas.filterchain(imgdata).toGrayscale().saturate().result;
-    }
+        return new FilterChain(imgdata).toGrayscale().saturate().result;
+    };
 </script>
 </html>

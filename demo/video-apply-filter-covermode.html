@@ -3,10 +3,7 @@
 <head>
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
     <title>Demo: Apply Filter</title>
-    <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
-    <script src="../node_modules/ccwc-image-utils/canvas.js"></script>
-    <script src="../src/ccwc-video.js"></script>
-    <link rel="stylesheet" href="../src/ccwc-video.css">
+    <script type="module" src="../ccwc-video.js"></script>
 
     <style>
         ccwc-video {
@@ -22,7 +19,7 @@
    Apply filter in cover mode (results look suspicious and not working: FIX)
 </p>
 <ccwc-video
-        src="FroggerHighway.mp4"
+        src="SampleVideo_360x240_1mb.mp4"
         videoScaleMode="cover"
         useCanvasForDisplay
         canvasRefreshInterval="100">
@@ -31,8 +28,9 @@
 <canvas></canvas>
 </body>
 
-<script>
+<script type="module">
+    import Filters from '../node_modules/ccwc-image-utils/src/canvas/filters.js';
    // document.querySelector('ccwc-video').canvasFilter = ccwc.image.canvas.filters.toGrayscale;
-    document.querySelector('ccwc-video').canvasFilter = ccwc.image.canvas.filters.saturate;
+    document.querySelector('ccwc-video').canvasFilter = Filters.saturate;
 </script>
 </html>

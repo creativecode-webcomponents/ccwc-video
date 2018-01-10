@@ -3,11 +3,7 @@
 <head>
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
     <title>Demo: Take a snapshot and diff the Camera feed against it</title>
-    <link rel="import" href="../ccwc-glvideo.html">
-    <script src="../src/ccwc-video.js"></script>
-    <script src="../src/ccwc-glvideo.js"></script>
-    <link rel="stylesheet" href="../src/ccwc-video.css">
-    <script src="../node_modules/ccwc-image-utils/webgl.js"></script>
+    <script type="module" src="../ccwc-glvideo.js"></script>
 
     <script id="2d-fragment-shader" type="x-shader/x-fragment">
         precision mediump float;
@@ -43,13 +39,11 @@
 <body>
     <h2>Demo: Find and Display Blobs from a WebGL Difference Filter</h2>
 
-    <input type="range" value="50" min="0" max="100" step="1" id="tolerance" oninput="onSliderChange(event)">
+    <input type="range" value="50" min="0" max="100" step="1" id="tolerance">
 
     <ccwc-glvideo
             src="SampleVideo_360x240_1mb.mp4"
             useWebGL='{"flipTextureY": true}'
-            shaders="ccwc.image.webgl.shaders"
-            filters="ccwc.image.webgl.filters"
             useCanvasForDisplay
             flipCanvas
             frameDataMode="imagedata"
@@ -58,23 +52,29 @@
 
     <canvas id="target"></canvas>
 
-    <button onclick="captureStill()">Capture Still</button>
+    <button>Capture Still</button>
 
-    <script>
+    <script type="module">
+        import Constant from '../node_modules/ccwc-image-utils/src/webgl/constants.js';
+        import Shaders from '../node_modules/ccwc-image-utils/src/webgl/shaders.js';
+        import Blobs from '../node_modules/ccwc-image-utils/src/canvas/blobs.js';
+
+        document.querySelector('button').addEventListener('click', captureStill);
+        document.querySelector('button').addEventListener('input', onSliderChange);
         var video = document.querySelector('ccwc-glvideo');
         var ctx = document.querySelector('canvas#target').getContext('2d');
-        video.webglProperties.vertexShader = ccwc.image.webgl.shaders.passthrough.vertex;
+        video.webglProperties.vertexShader = Shaders.passthrough.vertex;
         video.webglProperties.fragmentShader = document.getElementById('2d-fragment-shader').text;
 
         video.addEventListener('webglsetup', function(event) {
-            event.detail.properties.renderobj.uniforms.add('u_tolerance', ccwc.image.webgl.constants.uniforms.UNIFORM1f, [0.5]);
+            event.detail.properties.renderobj.uniforms.add('u_tolerance', Constants.uniforms.UNIFORM1f, [0.5]);
             event.detail.properties.renderobj.textures.add('capture', video.videoElement);
         });
 
         video.addEventListener('frameupdate', function(event) {
             ctx.canvas.width = event.detail.videoWidth;
             ctx.canvas.height = event.detail.videoHeight;
-            var blobs = ccwc.image.canvas.blobs.findBlobs((event.detail.framedata), {paint: true});
+            var blobs = Blobs.findBlobs((event.detail.framedata), {paint: true});
             ctx.putImageData(blobs.image, 0, 0);
         });
 

@@ -1,7 +1,13 @@
-//import Filters from '../node_modules/ccwc-image-utils/src/webgl/filters.es6';
-//import Shaders from '../node_modules/ccwc-image-utils/src/webgl/shaders.es6';
+import CCWCVideo from './ccwc-video.js';
+import Filters from './node_modules/ccwc-image-utils/src/webgl/filters.js';
+import Shaders from './node_modules/ccwc-image-utils/src/webgl/shaders.js';
 
-class CCWCGLVideo extends CCWCVideo {
+export default class CCWCGLVideo extends CCWCVideo {
+    static get ON_WEBGL_SETUP() { return 'webglsetup'; }
+    static get ON_VIDEO_PLAYING() { return 'videoplaying'; }
+    static get ON_FRAME_UPDATE() { return 'frameupdate'; }
+    static get ON_READY() { return 'ready'; }
+
     /**
      * initialize default class properties
      * @private
@@ -22,6 +28,27 @@ class CCWCGLVideo extends CCWCVideo {
          * @private
          */
         this._useWebGL = false;
+
+        this.template = `
+                <style>
+                    ccwc-glvideo {
+                        display: inline-block;
+                        background-color: black;
+                        position: relative;
+                        overflow: hidden;
+                    }
+                    
+                    ccwc-glvideo > canvas {
+                        position: absolute;
+                    }
+                    
+                    ccwc-glvideo > video {
+                        position: absolute;
+                    }
+                </style>
+
+                <video autoplay="true"></video>
+                <canvas></canvas>`;
     };
 
     onResize() {
@@ -40,7 +67,7 @@ class CCWCGLVideo extends CCWCVideo {
         super.onPlaying();
         if (this._useWebGL) {
             this.webglProperties.renderobj = this.webglProperties.setupHandler.apply(this, [this.webglProperties]);
-            var event = new CustomEvent('webglsetup', { detail: { properties: this.webglProperties } });
+            var event = new CustomEvent(CCWCGLVideo.ON_WEBGL_SETUP, { detail: { properties: this.webglProperties } });
             this.dispatchEvent(event);
         }
     };
@@ -52,7 +79,7 @@ class CCWCGLVideo extends CCWCVideo {
      * @return {object} image data
      */
     getCurrentFrameData(mode, noredraw) {
-        var data, filtered;
+        let data, filtered;
         if (!mode) {
             mode = this.frameDataMode;
         }
@@ -88,7 +115,7 @@ class CCWCGLVideo extends CCWCVideo {
             case 'imagedata':
                 if (!filtered) {
                     if (this._useWebGL) {
-                        data = this.Filters.getCanvasPixels(this.webglProperties.renderobj);
+                        data = Filters.getCanvasPixels(this.webglProperties.renderobj);
                     } else {
                         data = this.canvasctx.getImageData(0, 0, this.videoScaledWidth * this.canvasScale, this.videoScaledHeight * this.canvasScale);
                     }
@@ -110,9 +137,9 @@ class CCWCGLVideo extends CCWCVideo {
     webglSetupHandler(props) {
         var filter;
         if (props.vertexShader && props.fragmentShader) {
-            filter = this.Filters.createFilterFromShaders(props.vertexShader, props.fragmentShader)
+            filter = Filters.createFilterFromShaders(props.vertexShader, props.fragmentShader)
         } else {
-            filter = this.Filters.createFilterFromName(props.filter, props.filterLibrary);
+            filter = Filters.createFilterFromName(props.filter, props.filterLibrary);
         }
 
         props.textures.push({
@@ -131,7 +158,7 @@ class CCWCGLVideo extends CCWCVideo {
             renderObj.textureOffset = props.textureOffset;
         }
 
-        return this.Filters.createRenderObject(renderObj);
+        return Filters.createRenderObject(renderObj);
     };
 
     /**
@@ -139,7 +166,7 @@ class CCWCGLVideo extends CCWCVideo {
      * @param renderobj WebGL render properties
      */
     webglRenderHandler(renderobj) {
-        this.Filters.render(renderobj);
+        Filters.render(renderobj);
     };
 
     /**
@@ -175,18 +202,6 @@ class CCWCGLVideo extends CCWCVideo {
      * @private
      */
     connectedCallback() {
-        let Shaders;
-        if (this.getAttribute('shaders')) {
-            Shaders = eval(this.getAttribute('shaders'));
-        } else {
-            Shaders = ccwc.image.webgl.shaders;
-        }
-
-        if (this.getAttribute('filters')) {
-            this.Filters = eval(this.getAttribute('filters'));
-        } else {
-            this.Filters = ccwc.image.webgl.filters;
-        }
         this.webglProperties = {
             flipTextureY: false,
             filterLibrary: Shaders,

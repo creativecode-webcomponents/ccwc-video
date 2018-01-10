@@ -3,10 +3,7 @@
 <head>
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
     <title>Demo: Copy to Canvas</title>
-    <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
-    <script src="../node_modules/ccwc-image-utils/canvas.js"></script>
-    <script src="../src/ccwc-video.js"></script>
-    <link rel="stylesheet" href="../src/ccwc-video.css">
+    <script type="module" src="../ccwc-video.js"></script>
 
     <style>
         ccwc-video {
@@ -25,9 +22,11 @@
 <canvas></canvas>
 </body>
 
-<script>
+<script type="module">
+    import Filters from '../node_modules/ccwc-image-utils/src/canvas/filters.js';
+
     var ctx = document.querySelector('canvas').getContext('2d');
-   // document.querySelector('ccwc-video').canvasFilter = ccwc.image.canvas.filters.toGrayscale;
-    document.querySelector('ccwc-video').canvasFilter = ccwc.image.canvas.filters.saturate;
+   // document.querySelector('ccwc-video').canvasFilter = Filters.toGrayscale;
+    document.querySelector('ccwc-video').canvasFilter = Filters.saturate;
 </script>
 </html>

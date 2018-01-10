@@ -3,9 +3,7 @@
     <head>
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
         <title>Demo: Simple Playback</title>
-        <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
-        <script src="../src/ccwc-video.js"></script>
-        <link rel="stylesheet" href="../src/ccwc-video.css">
+        <script type="module" src="../ccwc-video.js"></script>
 
         <style>
             ccwc-video#a {
@@ -29,9 +27,10 @@
         <h2>Demo: Play a video</h2>
         <p>
             play a video, fill and crop to allotted space (no letterboxing)
+            also...find a different source - letterboxing is baked into video, so it's deceptive
         </p>
-        <ccwc-video id="a" src="FroggerHighway.mp4" videoScaleMode="cover"></ccwc-video>
-        <ccwc-video id="b" src="FroggerHighway.mp4" videoScaleMode="cover"></ccwc-video>
-        <ccwc-video id="c" src="FroggerHighway.mp4" videoScaleMode="cover"></ccwc-video>
+        <ccwc-video id="a" src="SampleVideo_360x240_1mb.mp4" videoScaleMode="cover"></ccwc-video>
+        <ccwc-video id="b" src="SampleVideo_360x240_1mb.mp4" videoScaleMode="cover"></ccwc-video>
+        <ccwc-video id="c" src="SampleVideo_360x240_1mb.mp4" videoScaleMode="cover"></ccwc-video>
     </body>
 </html>

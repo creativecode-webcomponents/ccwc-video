@@ -3,11 +3,7 @@
     <head>
         <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
         <title>Demo: Copy to Canvas</title>
-        <script src="../node_modules/webcomponents.js/webcomponents.min.js"></script>
-        <script src="../src/ccwc-video.js"></script>
-        <script src="../src/ccwc-glvideo.js"></script>
-        <link rel="stylesheet" href="../src/ccwc-video.css">
-        <script src="../node_modules/ccwc-image-utils/webgl.js"></script>
+        <script type="module" src="../ccwc-glvideo.js"></script>
 
         <style>
             ccwc-glvideo {
@@ -23,8 +19,6 @@
             Apply WebGL Filter - possible glfilters are "sepia", "greyscale", "sobel_edge_detection", and "freichen_edge_detection"
         </p>
         <ccwc-glvideo
-                shaders="ccwc.image.webgl.shaders"
-                filters="ccwc.image.webgl.filters"
                 src="SampleVideo_360x240_1mb.mp4"
                 useCanvasForDisplay
                 canvasRefreshInterval="10" useWebGL='{"filter": "sobel_edge_detection"}'>
