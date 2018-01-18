@@ -525,6 +525,10 @@ export default class CCWCVideo extends HTMLElement {
             console.log('Warning: Using canvas for display, but the canvas refresh interval is not set or set to 0. Setting refresh interval to 250ms.');
             this.canvasRefreshInterval = 250;
         }
+
+        if (this.hasAttribute('backgroundColor')) {
+            this.style.backgroundColor = this.getAttribute('backgroundColor');
+        }
     };
 
     /**
