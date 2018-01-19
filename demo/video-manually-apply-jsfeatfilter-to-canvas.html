@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Video Playback Demo</title>
+    <script type="module" src="../ccwc-video.js"></script>
+
+    <style>
+        ccwc-video {
+            width: 640px;
+            height: 480px;
+        }
+    </style>
+</head>
+
+<body>
+    <ccwc-video
+            src="SampleVideo_360x240_1mb.mp4"
+            frameDataMode="imagedata"
+            canvasRefreshInterval="50"
+            backgroundColor="white"
+            useCanvasForDisplay>
+    </ccwc-video>
+
+    <script type="module">
+        import Filters from '../node_modules/ccwc-image-utils/src/jsfeat/filters.js';
+
+        document.querySelector('ccwc-video').addEventListener('frameupdate', function(event) {
+            var data = event.detail;
+            //data.canvascontext.putImageData(Filters.toGrayscale(data.framedata), 0, 0, 0, 0, data.width, data.height );
+            //data.canvascontext.putImageData(Filters.toSobelDerivative(data.framedata), 0, 0, 0, 0, data.width, data.height );
+            data.canvascontext.putImageData(Filters.toPyrdown(data.framedata), 0, 0, 0, 0, data.width, data.height );
+        });
+    </script>
+</body>
+</html>

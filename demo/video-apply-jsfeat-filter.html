@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>Demo: Apply Filter</title>
+    <script type="module" src="../ccwc-video.js"></script>
+
+    <style>
+        ccwc-video {
+            width: 250px;
+            height: 250px;
+        }
+    </style>
+</head>
+
+<body>
+<h2>Demo: Apply Filter</h2>
+<p>
+    Apply a filter to the video
+</p>
+
+<ccwc-video
+        src="SampleVideo_360x240_1mb.mp4"
+        useCanvasForDisplay
+        backgroundColor="white"
+        canvasRefreshInterval="100">
+</ccwc-video>
+
+<canvas></canvas>
+</body>
+
+<script type="module">
+    import Filters from '../node_modules/ccwc-image-utils/src/jsfeat/filters.js';
+    var ctx = document.querySelector('canvas').getContext('2d');
+    //document.querySelector('ccwc-video').canvasFilter = Filters.toGrayscale;
+    document.querySelector('ccwc-video').canvasFilter = Filters.toSobelDerivative;
+    //document.querySelector('ccwc-video').canvasFilter = Filters.toPyrdown;
+</script>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Video Camera Demo</title>
+    <script type="module" src="../ccwc-video.js"></script>
+
+    <style>
+        ccwc-video {
+            width: 640px;
+            height: 480px;
+        }
+    </style>
+</head>
+
+<ccwc-video
+        frameDataMode="imagedata"
+        canvasRefreshInterval="50"
+        src="0"
+        useCamera
+        useCanvasForDisplay>
+</ccwc-video>
+
+<br />
+<button>Capture Baseline</button>
+
+<br />
+<input type="range" value="90" min="0" max="100" step="1" id="tolerance">
+
+<script type="module">
+    import Filters from '../node_modules/ccwc-image-utils/src/canvas/filters.js';
+    import Blobs from '../node_modules/ccwc-image-utils/src/canvas/blobs.js';
+
+    document.querySelector('button').addEventListener('click', capture);
+    document.querySelector('input').addEventListener('input', onSliderChange);
+
+    var baselineimage = null;
+    var lastframe = null;
+    var tolerance = parseInt(document.querySelector('#tolerance').value);
+    document.querySelector('ccwc-video').addEventListener('frameupdate', function(event) {
+        var data = event.detail;
+        lastframe = data.framedata;
+        if (baselineimage) {
+            var diff = Filters.toDiff(data.framedata, baselineimage, tolerance);
+            var blobs = Blobs.findBlobs((diff), {paint: true});
+            data.canvascontext.putImageData(blobs.image, 0, 0, 0, 0, data.width, data.height );
+        }
+    });
+
+    function capture() {
+        baselineimage = lastframe;
+    }
+
+    function onSliderChange(event) {
+        tolerance = parseInt(event.target.value);
+    }
+
+</script>
+</body>
+</html>

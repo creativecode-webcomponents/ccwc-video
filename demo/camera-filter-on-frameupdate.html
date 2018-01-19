@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Video Camera Demo</title>
+    <script type="module" src="../ccwc-video.js"></script>
+    
+    <style>
+        ccwc-video {
+            width: 640px;
+            height: 480px;
+        }
+    </style>
+</head>
+
+<body>
+    <ccwc-video
+            frameDataMode="imagedata"
+            canvasRefreshInterval="50"
+            src="0"
+            useCamera
+            useCanvasForDisplay>
+    </ccwc-video>
+
+    <script type="module">
+        import Filters from '../node_modules/ccwc-image-utils/src/canvas/filters.js';
+
+        document.querySelector('ccwc-video').addEventListener('frameupdate', function(event) {
+            var data = event.detail;
+            data.canvascontext.putImageData(Filters.toGrayscale(data.framedata), 0, 0, 0, 0, data.width, data.height );
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>Demo: Apply Filter</title>
+    <script type="module" src="../ccwc-video.js"></script>
+
+    <style>
+        ccwc-video {
+            width: 250px;
+            height: 250px;
+        }
+    </style>
+
+
+</head>
+
+<body>
+<h2>Demo: Apply Filter</h2>
+<p>
+    Apply a filter to the video
+</p>
+<ccwc-video
+        src="SampleVideo_360x240_1mb.mp4"
+        canvasRefreshInterval="100">
+</ccwc-video>
+
+<script type="module">
+    import Filter from '../node_modules/ccwc-image-utils/src/webgl/filters.js';
+
+    var filters = ['sepia', 'greyscale', 'passthrough', 'sobel_edge_detection', 'freichen_edge_detection'];
+    var canvas = document.createElement('canvas');
+    document.body.appendChild(canvas);
+
+    document.querySelector('ccwc-video').addEventListener('videoplaying', function(event) {
+
+        // must set the width before getting the canvas context for proper sizing
+        canvas.width = event.detail.videoWidth;
+        canvas.height = event.detail.videoHeight;
+
+        var glProps = Filter.createRenderObject({
+            gl: canvas.getContext('webgl'),
+            filter: Filter.createFilterFromName(filters[parseInt(Math.random() * filters.length)]),
+            textures: [{name: 'video', texture: document.querySelector('ccwc-video').videoElement}]
+        });
+
+
+        document.querySelector('ccwc-video').addEventListener('frameupdate', function(event) {
+            glProps.textures.update('video');
+            glProps = Filter.render(glProps);
+        });
+    });
+</script>
+</body>
+</html>
