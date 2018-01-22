@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>Demo: Copy to Canvas</title>
+    <script type="module" src="../ccwc-video.js"></script>
+
+    <style>
+        ccwc-video {
+            width: 250px;
+            height: 250px;
+        }
+    </style>
+</head>
+
+<body>
+<h2>Demo: Copy to Canvas</h2>
+<p>
+    Use the frame data event to trigger drawing to another canvas
+</p>
+<ccwc-video useCamera useCanvasForDisplay canvasRefreshInterval="50"></ccwc-video>
+<canvas></canvas>
+</body>
+
+<script type="module">
+    import Filters from '../node_modules/ccwc-image-utils/src/jsfeat/filters.js';
+
+    var ctx = document.querySelector('canvas').getContext('2d');
+    document.querySelector('ccwc-video').canvasFilter = Filters.fastCornersViz;
+</script>
+</html>
