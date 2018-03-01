@@ -2,13 +2,13 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
-    <title>Demo: Chained Filter</title>
+    <title>Demo: Copy to Canvas</title>
     <script type="module" src="../ccwc-video.js"></script>
 
     <style>
         ccwc-video {
-            width: 250px;
-            height: 250px;
+            width: 640px;
+            height: 480px;
         }
     </style>
 </head>
@@ -18,17 +18,14 @@
 <p>
     Use the frame data event to trigger drawing to another canvas
 </p>
-<ccwc-video useCamera useCanvasForDisplay canvasRefreshInterval="100"></ccwc-video>
-
+<ccwc-video useCamera useCanvasForDisplay canvasRefreshInterval="50"></ccwc-video>
 <canvas></canvas>
 </body>
 
 <script type="module">
-    import FilterChain from '../node_modules/ccwc-image-utils/src/filterchain.js';
+    import Filters from '../node_modules/ccwc-image-utils/src/jsfeat/filters.js';
 
     var ctx = document.querySelector('canvas').getContext('2d');
-    document.querySelector('ccwc-video').canvasFilter = function(imgdata) {
-        return new FilterChain(imgdata).toGrayscale().saturate().result;
-    };
+    document.querySelector('ccwc-video').canvasFilter = Filters.toFeatureVisualization;
 </script>
 </html>

@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>Demo: Optical Flow Tracking</title>
+    <script type="module" src="../ccwc-video.js"></script>
+
+    <style>
+        ccwc-video {
+            width: 640px;
+            height: 480px;
+        }
+    </style>
+</head>
+
+<body>
+<h2>Optical Flow Tracking</h2>
+<p>
+    Click the canvas to track a point
+</p>
+<ccwc-video useCamera frameDataMode="imagedata" useCanvasForDisplay canvasRefreshInterval="10"></ccwc-video>
+</body>
+
+<script type="module">
+    import Detection from '../node_modules/ccwc-image-utils/src/jsfeat/detection.js';
+    let detect = new Detection();
+
+    document.querySelector('ccwc-video').addEventListener('frameupdate', function(event) {
+        let data = event.detail;
+        if (!detect.context) { detect.context = data.canvascontext; }
+        let points = detect.updateFlow(data.framedata);
+    });
+
+    document.querySelector('ccwc-video').addEventListener('click', function(event) {
+        detect.addFlowPoint(event.offsetX, event.offsetY);
+    });
+</script>
+</html>
+
+

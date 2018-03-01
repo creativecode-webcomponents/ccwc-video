@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>Demo: Optical Flow Tracking</title>
+    <script type="module" src="../ccwc-video.js"></script>
+
+    <style>
+        ccwc-video {
+            width: 640px;
+            height: 480px;
+        }
+    </style>
+</head>
+
+<body>
+<h2>Optical Flow Tracking for Arbitrary Points</h2>
+<p>
+</p>
+<ccwc-video useCamera frameDataMode="imagedata" useCanvasForDisplay canvasRefreshInterval="50"></ccwc-video>
+<br />
+<button>Capture Baseline</button>
+
+<br />
+<input type="range" value="90" min="0" max="100" step="1" id="tolerance">
+</body>
+
+<script type="module">
+    import Detection from '../node_modules/ccwc-image-utils/src/jsfeat/detection.js';
+    import JSFeat from '../node_modules/ccwc-image-utils/src/jsfeat/jsfeat.js';
+    import Filters from '../node_modules/ccwc-image-utils/src/canvas/filters.js';
+
+    document.querySelector('button').addEventListener('click', capture);
+    document.querySelector('input').addEventListener('input', onSliderChange);
+    let detect = new Detection();
+    var baselineimage = null;
+    var lastframe = null;
+    var tolerance = parseInt(document.querySelector('#tolerance').value);
+
+    document.querySelector('ccwc-video').addEventListener('frameupdate', function(event) {
+        let data = event.detail;
+        if (!detect.context) { detect.context = data.canvascontext; }
+
+        lastframe = data.framedata;
+        if (baselineimage) {
+            let points = detect.updateFlow(Filters.toDiff(data.framedata, baselineimage, tolerance), 0, 0, 0, 0, data.width, data.height);
+        }
+    });
+
+    function capture() {
+        baselineimage = lastframe;
+    }
+
+    function onSliderChange(event) {
+        tolerance = parseInt(event.target.value);
+    }
+
+</script>
+</html>
+
+

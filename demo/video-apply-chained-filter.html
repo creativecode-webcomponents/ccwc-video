@@ -28,7 +28,7 @@
 </body>
 
 <script type="module">
-    import FilterChain from '../node_modules/ccwc-image-utils/src/canvas/FilterChain.js'
+    import FilterChain from '../node_modules/ccwc-image-utils/src/filterchain.js'
     var ctx = document.querySelector('canvas#target').getContext('2d');
     document.querySelector('ccwc-video').canvasFilter = function(imgdata) {
         return new FilterChain(imgdata).toGrayscale().saturate().result;
