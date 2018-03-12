@@ -10,6 +10,12 @@
             width: 640px;
             height: 480px;
         }
+
+        #log {
+            padding: 10px;
+            color: white;
+            background-color: #2a2a2a;
+        }
     </style>
 </head>
 
@@ -19,6 +25,7 @@
     Click the canvas to track a point
 </p>
 <ccwc-video useCamera frameDataMode="imagedata" useCanvasForDisplay canvasRefreshInterval="10"></ccwc-video>
+<div id="log">status</div>
 </body>
 
 <script type="module">

@@ -30,30 +30,15 @@
     import JSFeat from '../node_modules/ccwc-image-utils/src/jsfeat/jsfeat.js';
     import Filters from '../node_modules/ccwc-image-utils/src/canvas/filters.js';
 
-    document.querySelector('button').addEventListener('click', capture);
-    document.querySelector('input').addEventListener('input', onSliderChange);
     let detect = new Detection();
-    var baselineimage = null;
-    var lastframe = null;
-    var tolerance = parseInt(document.querySelector('#tolerance').value);
+    detect.motionEstimatorOptions.autoFlowPoints = true;
 
     document.querySelector('ccwc-video').addEventListener('frameupdate', function(event) {
         let data = event.detail;
         if (!detect.context) { detect.context = data.canvascontext; }
-
-        lastframe = data.framedata;
-        if (baselineimage) {
-            let points = detect.updateFlow(Filters.toDiff(data.framedata, baselineimage, tolerance), 0, 0, 0, 0, data.width, data.height);
-        }
+        let points = detect.updateFlow(data.framedata, 0, 0, 0, 0, data.width, data.height);
     });
 
-    function capture() {
-        baselineimage = lastframe;
-    }
-
-    function onSliderChange(event) {
-        tolerance = parseInt(event.target.value);
-    }
 
 </script>
 </html>
