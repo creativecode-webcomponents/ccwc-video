@@ -456,7 +456,7 @@ export default class CCWCVideo extends HTMLElement {
      * @private
      */
     onCameraStream(stream) {
-        this.videoElement.src = URL.createObjectURL(stream);
+        this.videoElement.srcObject = stream;
         this.videoElement.onloadedmetadata = e => {
             this.onResize();
         };
